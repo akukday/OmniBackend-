@@ -25,7 +25,7 @@ RUN npm run build
 RUN npm ci --only=production && npm cache clean --force
 
 # Expose port
-EXPOSE 8081
+EXPOSE 8082
 
 # Start the application
 CMD ["npm", "start"]
