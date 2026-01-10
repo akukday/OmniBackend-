@@ -21,6 +21,11 @@ COPY . .
 # Build the application
 RUN npm run build
 
+COPY /usr/src/app/dist ./dist
+COPY /usr/src/app/node_modules ./node_modules
+COPY /usr/src/app/package.json ./package.json
+COPY /usr/src/app/.env.* ./
+
 # Optionally prune dev dependencies after build to reduce image size
 RUN npm ci --only=production && npm cache clean --force
 
