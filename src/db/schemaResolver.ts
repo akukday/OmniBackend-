@@ -12,8 +12,8 @@ const SCHEMA_MAP: Record<string, string> = {
  * Hostname → schema mapping
  */
 const HOST_SCHEMA_MAP: Record<string, string> = {
-  "wedding.myapp.com": "wedding",
-  "baby.myapp.com": "baby",
+  "wedding.plan-event.org": "wedding",
+  "baby.plan-event.org": "baby",
 
   // local dev
   "wedding": "wedding",
