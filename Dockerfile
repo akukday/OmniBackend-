@@ -1,36 +1,35 @@
-FROM node:20.14.0-alpine3.19
+#### STAGE1 ####
+FROM node:20.14.0-alpine3.19 AS build
 
-# Create directory if not present
+# Create directpry if not present
 RUN mkdir -p /usr/src/app
 
 # Set work directory
 WORKDIR /usr/src/app
 
-# Copy package files first for better layer caching
+# Install dependancies
 COPY package.json package-lock.json ./
 
-# Copy env files
 COPY .env.* ./
 
-# Install all dependencies (including dev for build)
-RUN npm ci --only=production=false
+RUN npm install
 
-# Copy source code
 COPY . .
 
-# Build the application
 RUN npm run build
 
-COPY /usr/src/app/dist ./dist
-COPY /usr/src/app/node_modules ./node_modules
-COPY /usr/src/app/package.json ./package.json
-COPY /usr/src/app/.env.* ./
+#### STAGE2 ####
+FROM node:20.14.0-alpine3.19 AS serve
 
-# Optionally prune dev dependencies after build to reduce image size
-RUN npm ci --only=production && npm cache clean --force
+WORKDIR /usr/src/app
+
+COPY --from=build /usr/src/app/dist ./dist
+COPY --from=build /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/package.json ./package.json
+COPY --from=build /usr/src/app/.env.* ./
 
 # Expose port
 EXPOSE 8082
 
-# Start the application
-CMD ["npm", "start"]
+# Starts run command
+CMD ["npm","start"]
