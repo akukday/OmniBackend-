@@ -29,7 +29,7 @@ export function schemaResolver(
 
   // HOSTNAME
   const host = req.hostname.toLowerCase();
-  schema = HOST_SCHEMA_MAP[host];
+  schema = SCHEMA_MAP[HOST_SCHEMA_MAP[host]];
   
   // QUERY PARAM
   if (!schema && typeof req.query.schema === "string") {
@@ -39,7 +39,7 @@ export function schemaResolver(
     }
   }
 
-  // HEADER (highest priority) (fallback)
+  // HEADER (fallback)
   if (!schema) {
     const headerSchema = req.header("x-tenant");
 
