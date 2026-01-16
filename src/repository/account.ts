@@ -1,6 +1,5 @@
 import { ModelStatic, Op, Sequelize, Transaction } from "sequelize";
 import { Account } from "../db/model/account";
-import { dbService } from "../db/sequelize";
 
 export class AccountRepository {
     private _accountRepo: ModelStatic<Account>;

@@ -1,4 +1,4 @@
-import { Account, AccountAttributes } from "../db/model/account";
+import { AccountAttributes } from "../db/model/account";
 import { AccountRepository } from "../repository/account";
 import bcrypt from "bcryptjs";
 import { hashString } from "../util/encryptionUtil";
