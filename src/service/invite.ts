@@ -84,9 +84,9 @@ export class InviteService {
     return invites.map(i => this.transform(i));
   }
 
-  public async markInviteUsed(inviteId: number): Promise<void> {
+  public async markInviteUsed(inviteIds: number[]): Promise<void> {
     await InviteRepository
       .withSchema(this.schema)
-      .markUsed(inviteId);
+      .markUsed(inviteIds);
   }
 }

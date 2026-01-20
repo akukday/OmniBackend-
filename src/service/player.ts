@@ -33,7 +33,7 @@ export class PlayerService {
     sessionId: number;
     name: string;
     teamId?: number;
-    userId?: number;
+    userId?: string;
   }): Promise<PlayerResponse> {
     const player = await PlayerRepository
       .withSchema(this.schema)

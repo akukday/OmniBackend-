@@ -1,4 +1,4 @@
-import { ModelStatic, Transaction } from "sequelize";
+import { ModelStatic, Op, Transaction } from "sequelize";
 import { Invite } from "../db/model/invite";
 
 export class InviteRepository {
@@ -38,13 +38,13 @@ export class InviteRepository {
   }
 
   public async markUsed(
-    id: number,
+    ids: number[],
     t?: Transaction
   ): Promise<number> {
     return this._repo
       .update(
         { status: "USED", usedAt: new Date() },
-        { where: { id }, transaction: t }
+        { where: { id: { [Op.in]: ids} }, transaction: t }
       )
       .then(([count]) => count);
   }

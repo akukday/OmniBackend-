@@ -31,7 +31,7 @@ export class Invite extends Model<InviteAttributes, InviteCreationAttributes> im
   public email?: string;
   public mobile?: string;
   public invitedName?: string;
-  public status?: string; // SENT | ACCEPTED | EXPIRED | REVOKED
+  public status?: string; // SENT | USED | EXPIRED | REVOKED
   public expiresAt?: Date;
   public usedAt?: Date;
   public createdAt?: Date;

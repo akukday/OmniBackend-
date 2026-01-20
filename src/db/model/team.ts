@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import { dbService } from "../sequelize";
+import { Player } from "./player";
 
 /**
  * DB attributes
@@ -67,3 +68,6 @@ Team.init(
     ]
   }
 );
+
+Team.hasMany(Player, { foreignKey: "teamId" });
+Player.belongsTo(Team, { foreignKey: "teamId" });

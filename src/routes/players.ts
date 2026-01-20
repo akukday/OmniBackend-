@@ -4,6 +4,10 @@ import { ErrorUtil } from "../util/errorUtil";
 import { InviteService } from "../service/invite";
 import { PlayerService } from "../service/player";
 import { SessionHelper } from "../common/middleware/sessionHelper";
+import { check, validationResult } from "express-validator";
+import { GameSessionService } from "../service/gameSession";
+import { AccountService } from "../service/account";
+import { TeamService } from "../service/team";
 
 const router = Router({ strict: true, caseSensitive: false });
 
@@ -42,30 +46,44 @@ router.get("/invite/session/:sessionId", SessionHelper.isUserLoggedIn(), async (
 });
 
 /**
- * Mark invite as used
+ * Join game session 
  */
-router.post("/invite/:id/use", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
+router.post("/join", SessionHelper.isUserLoggedIn(), [check('joinCode').notEmpty().withMessage('Join code can not be empty')],
+  async (req: Request, res: Response) => {
   try {
-    await InviteService
-      .withSchema(req.schema!)
-      .markInviteUsed(Number(req.params.id));
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).send({ ERRMSG: errors.array().map(x => x.msg).toString() });
+    }
+    const { joinCode } = req.body;
+    const userId = SessionHelper.getCurrentUserId(req);
+    const user = await AccountService.withSchema(req.schema!).getAccountByUserId(userId);
+    const session = await GameSessionService.withSchema(req.schema!).joinByCode(joinCode);
+    if (!session) {
+      return res.status(404).json({ message: "Invalid join code" });
+    }
 
-    res.status(200).send({ message: "Invite marked as used" });
-  } catch (error) {
-    ErrorUtil.handleError(error, req, res);
-  }
-});
+    if (!['CREATED', 'LOBBY'].includes(session.status)) {
+      return res.status(400).json({ message: "Game already started" });
+    }
 
-/**
- * Join game session (guest or logged-in user)
- */
-router.post("/join", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
-  try {
-    const { sessionId, name, teamId, userId } = req.body;
+    const invited = (await InviteService.withSchema(req.schema!).getInvitesBySession(session.id))
+        .filter(i =>(user?.email && i.email === user.email) || (user?.phoneNo && i.mobile === user.phoneNo))
+    if (!Array.isArray(invited) || invited.length === 0) {
+      return res.status(403).json({message: "You are not invited to this session"});
+    }
+
+    // Random team assignment
+    const team = await TeamService.withSchema(req.schema!).findTeamWithLeastPlayers(session.id);
+    if (!team) {
+      return res.status(400).json({message: "No teams available"});
+    }
 
     const player = await PlayerService
       .withSchema(req.schema!)
-      .joinSession({ sessionId, name, teamId, userId });
+      .joinSession({ sessionId: session.id, name: user?.fullName || "", teamId: team.id, userId: userId });
+
+    await InviteService.withSchema(req.schema!).markInviteUsed(invited.map(x => x.id));
 
     res.status(201).send(player);
   } catch (error) {

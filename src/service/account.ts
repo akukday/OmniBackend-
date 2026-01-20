@@ -30,6 +30,14 @@ export class AccountService {
         };
     }
 
+    public async getAccountByUserId(userId: string): Promise<AccountResponse | null> {
+        const account = await AccountRepository.withSchema(this.schema).findByUserId(userId);
+        if(account) {
+            return this.transformResult(account);
+        }
+        return null;
+    }
+
     public async validateAndSendOtp(countryCode: string, phoneNo: string): Promise<String> {
         const account = await AccountRepository.withSchema(this.schema).findAccountByPhoneOrEmail(countryCode, phoneNo, "");
         if (!account) {

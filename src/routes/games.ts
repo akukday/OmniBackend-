@@ -158,21 +158,6 @@ router.post("/game-session", SessionHelper.isUserLoggedIn(), async (req: Request
   });
   
   /**
-   * Join game session (PARTICIPANT)
-   */
-  router.get("/join/:code", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
-    try {
-      const session = await GameSessionService
-        .withSchema(req.schema!)
-        .joinByCode(req.params.code);
-  
-      res.status(200).send(session);
-    } catch (error) {
-      ErrorUtil.handleError(error, req, res);
-    }
-  });
-  
-  /**
    * End game session
    */
   router.post("/sessions/:id/end", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {

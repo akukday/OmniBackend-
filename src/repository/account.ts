@@ -35,4 +35,8 @@ export class AccountRepository {
       return this._accountRepo.destroy({where: {id: accountId}, cascade: true});
     }
 
+    public async findByUserId(userId: string, t?: Transaction): Promise<Account | null> {
+      return this._accountRepo.findOne({where:  {id: userId}, transaction: t});
+    }
+
 }

@@ -89,7 +89,6 @@ export class GameSessionService {
     }
   }
 
-
   public async joinByCode(joinCode: string): Promise<GameSessionResponse> {
     const session = await GameSessionRepository
       .withSchema(this.schema)

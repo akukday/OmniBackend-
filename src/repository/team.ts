@@ -1,5 +1,6 @@
-import { ModelStatic, Transaction } from "sequelize";
+import { ModelStatic, Sequelize, Transaction } from "sequelize";
 import { Team } from "../db/model/team";
+import { Player } from "../db/model/player";
 
 export class TeamRepository {
   private _repo: ModelStatic<Team>;
@@ -55,6 +56,22 @@ export class TeamRepository {
       where: { id: teamId },
       cascade: true,
       transaction: t
+    });
+  }
+
+  public async findTeamWithLeastPlayers(sessionId: number): Promise<Team | null> {
+    return this._repo.findOne({
+      where: { sessionId },
+      include: [
+        {
+          model: Player,
+          attributes: [],
+          required: false
+        }
+      ],
+      group: ["Team.id"],
+      order: [[Sequelize.literal("COUNT(players.id)"), "ASC"]],
+      subQuery: false
     });
   }
 }

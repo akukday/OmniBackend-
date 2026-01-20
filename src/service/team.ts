@@ -36,9 +36,7 @@ export class TeamService {
     return this.transform(team);
   }
 
-  public async getTeamsBySession(
-    sessionId: number
-  ): Promise<TeamResponse[]> {
+  public async getTeamsBySession(sessionId: number): Promise<TeamResponse[]> {
     const teams = await TeamRepository
       .withSchema(this.schema)
       .findBySession(sessionId);
@@ -46,10 +44,15 @@ export class TeamService {
     return teams.map(t => this.transform(t));
   }
 
-  public async updateScore(
-    teamId: number,
-    score: number
-  ): Promise<void> {
+  public async findTeamWithLeastPlayers(sessionId: number): Promise<TeamResponse> {
+    const team = await TeamRepository
+      .withSchema(this.schema)
+      .findTeamWithLeastPlayers(sessionId);
+
+    return this.transform(team);
+  }
+
+  public async updateScore(teamId: number, score: number): Promise<void> {
     await TeamRepository
       .withSchema(this.schema)
       .updateScore(teamId, score);
