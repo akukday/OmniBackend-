@@ -26,6 +26,15 @@ export class GameSessionRepository {
     return this._repo.findOne({ where: { joinCode }, transaction: t });
   }
 
+  public async startSession(
+    sessionId: number,
+    t: Transaction
+  ): Promise<void> {
+    await this._repo.update({ status: "ROUND_ACTIVE", currentRound: 1 },
+      { where: { id: sessionId }, transaction: t }
+    );
+  }
+
   public async findById(
     id: number,
     t?: Transaction
@@ -43,15 +52,36 @@ export class GameSessionRepository {
       .then(([count]) => count);
   }
 
+  public async activateRound(
+    sessionId: number,
+    nextRound: number,
+    t: Transaction
+  ): Promise<void> {
+    await this._repo.update(
+      { currentRound: nextRound, status: "ROUND_ACTIVE" },
+      { where: { id: sessionId }, transaction: t }
+    );
+  }
+
   public async endSession(
     id: number,
     t?: Transaction
   ): Promise<number> {
     return this._repo
       .update(
-        { status: "ENDED", endedAt: new Date() },
+        { status: "ROUND_ENDED", endedAt: new Date() },
         { where: { id }, transaction: t }
       )
       .then(([count]) => count);
+  }
+
+  public async completeSession(
+    sessionId: number,
+    t: Transaction
+  ): Promise<void> {
+    await this._repo.update(
+      { status: "COMPLETED" },
+      { where: { id: sessionId }, transaction: t }
+    );
   }
 }

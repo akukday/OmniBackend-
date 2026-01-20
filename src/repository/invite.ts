@@ -60,4 +60,15 @@ export class InviteRepository {
       )
       .then(([count]) => count);
   }
+
+  public async bulkCreateInvites(
+    invites: Partial<Invite>[],
+    t?: Transaction
+  ): Promise<Invite[]> {
+    return this._repo.bulkCreate(invites as any[], {
+      ignoreDuplicates: true,
+      transaction: t
+    });
+  }
+  
 }

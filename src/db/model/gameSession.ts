@@ -32,6 +32,7 @@ export class GameSession
   public gameId!: number;
   public hostUserId!: string;
   public joinCode!: string;
+  public currentRound?: number;
   public status!: string; //CREATED → LOBBY → STARTED → ROUND_ACTIVE → COMPLETED
   public videoLink?: string;
   public createdAt?: Date;
@@ -58,6 +59,12 @@ GameSession.init(
     joinCode: {
       type: DataTypes.STRING(8),
       field: "join_code",
+      allowNull: false,
+      unique: true
+    },
+    currentRound: {
+      type: DataTypes.INTEGER,
+      field: "current_round",
       allowNull: false,
       unique: true
     },

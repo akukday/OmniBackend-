@@ -16,8 +16,8 @@ interface AccountRequest {
   fullName: string
   displayName: string
   countryCode: string
-  phoneNo: string
-  email: string
+  phoneNo?: string
+  email?: string
   password: string
 }
 

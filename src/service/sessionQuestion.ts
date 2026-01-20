@@ -65,7 +65,7 @@ export class SessionQuestionService {
 
     await SessionQuestionRepository
       .withSchema(this.schema)
-      .markStarted(sq.id);
+      .startRound(sq.id, roundNumber);
   }
 
   public async endRound(
@@ -82,6 +82,6 @@ export class SessionQuestionService {
 
     await SessionQuestionRepository
       .withSchema(this.schema)
-      .markEnded(sq.id);
+      .endRound(sq.id, roundNumber);
   }
 }

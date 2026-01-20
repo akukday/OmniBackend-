@@ -156,7 +156,7 @@ router.post('/login/otp', [check('phoneNo').notEmpty().withMessage('Phoneno can 
 
 router.post("/onboard", [check('phoneNo').notEmpty().withMessage('Phone Number can not be blank'),
     check('password').notEmpty().withMessage('Password can not be blank'),
-    check('fullName').notEmpty().withMessage('All fields are required')
+    check('fullName').notEmpty().withMessage('Name is required')
     ], async (req: Request, res: Response, next: NextFunction) => {
     try {
         const errors = validationResult(req);

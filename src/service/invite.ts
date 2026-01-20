@@ -33,26 +33,45 @@ export class InviteService {
 
   public async createInvite(
     sessionId: number,
-    payload: {
-      email?: string;
-      mobile?: string;
-      invitedName?: string;
-      expiresAt?: Date;
-    }
-  ): Promise<InviteResponse> {
-    if (!payload.email && !payload.mobile) {
+    invites: string
+  ): Promise<InviteResponse[]> {
+    if (!invites || invites.trim().length === 0) {
       throw new Error("Email or mobile is required");
     }
-
-    const invite = await InviteRepository
-      .withSchema(this.schema)
-      .createInvite({
+  
+    const values = invites
+      .split(",")
+      .map(v => v.trim())
+      .filter(v => v.length > 0);
+  
+    if (values.length === 0) {
+      throw new Error("Invalid invite list");
+    }
+  
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+    const payloads = values.map(value => {
+      if (emailRegex.test(value)) {
+        return {
+          sessionId,
+          email: value.toLowerCase(),
+          status: "SENT"
+        };
+      }
+  
+      // Everything else → mobile
+      return {
         sessionId,
-        ...payload,
+        mobile: value,
         status: "SENT"
-      } as any);
-
-    return this.transform(invite);
+      };
+    });
+  
+    const createdInvites = await InviteRepository
+      .withSchema(this.schema)
+      .bulkCreateInvites(payloads as any[]);
+  
+    return createdInvites.map(invite => this.transform(invite));
   }
 
   public async getInvitesBySession(

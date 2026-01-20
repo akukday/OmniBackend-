@@ -12,18 +12,13 @@ router.use(schemaResolver);
 /**
  * Create invite (HOST)
  */
-router.post("/invite", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
+router.post("/invites", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
   try {
-    const { sessionId, email, mobile, invitedName, expiresAt } = req.body;
+    const { sessionId, invites } = req.body;
 
     const invite = await InviteService
       .withSchema(req.schema!)
-      .createInvite(sessionId, {
-        email,
-        mobile,
-        invitedName,
-        expiresAt
-      });
+      .createInvite(sessionId, invites);
 
     res.status(201).send(invite);
   } catch (error) {

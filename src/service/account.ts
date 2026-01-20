@@ -103,12 +103,13 @@ export class AccountService {
     }
 
     public async registerUser(acc: AccountRequest): Promise<AccountResponse> {
+        console.log(acc)
         const account = await AccountRepository.withSchema(this.schema).createAccount({
             fullName: acc.fullName,
             displayName: acc.displayName ?? acc.fullName,
             countryCode: acc.countryCode ?? "+1",
             phoneNo: acc.phoneNo,
-            email: acc.email.toLowerCase(),
+            email: (acc.email ?? "").toLowerCase(),
             password: hashString(acc.password),
             allowAccess: true
         } as any);

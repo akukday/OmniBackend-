@@ -41,23 +41,25 @@ export class SessionQuestionRepository {
     });
   }
 
-  public async markStarted(
-    id: number,
+  public async startRound(
+    sessionId: number,
+    roundNumber: number,
     t?: Transaction
   ): Promise<void> {
     await this._repo.update(
       { startedAt: new Date() },
-      { where: { id }, transaction: t }
+      { where: { sessionId, roundNumber }, transaction: t }
     );
   }
 
-  public async markEnded(
-    id: number,
+  public async endRound(
+    sessionId: number,
+    roundNumber: number,
     t?: Transaction
   ): Promise<void> {
     await this._repo.update(
       { endedAt: new Date() },
-      { where: { id }, transaction: t }
+      { where: { sessionId, roundNumber }, transaction: t }
     );
   }
 

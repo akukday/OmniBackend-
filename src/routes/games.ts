@@ -124,6 +124,38 @@ router.post("/game-session", SessionHelper.isUserLoggedIn(), async (req: Request
       ErrorUtil.handleError(error, req, res);
     }
   });
+
+  router.post("/sessions/:sessionId/start", SessionHelper.isUserLoggedIn(),
+    async (req: Request, res: Response) => {
+      try {
+        await GameSessionService
+          .withSchema(req.schema!)
+          .startGameSession(Number(req.params.sessionId), SessionHelper.getCurrentUserId(req));
+  
+        res.status(200).send({ message: "Game started" });
+      } catch (error) {
+        ErrorUtil.handleError(error, req, res);
+      }
+    }
+  );
+
+  /**
+ * POST /api/host/sessions/:sessionId/rounds/start
+ */
+  router.post("/sessions/:sessionId/rounds/start", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
+    try {
+      const message = await GameSessionService
+        .withSchema(req.schema!)
+        .startNextRound(
+          Number(req.params.sessionId),
+          SessionHelper.getCurrentUserId(req)
+        );
+
+      res.status(200).send({ message });
+    } catch (error) {
+      ErrorUtil.handleError(error, req, res);
+    }
+  });
   
   /**
    * Join game session (PARTICIPANT)
@@ -143,7 +175,7 @@ router.post("/game-session", SessionHelper.isUserLoggedIn(), async (req: Request
   /**
    * End game session
    */
-  router.post("/:id/end", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
+  router.post("/sessions/:id/end", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
     try {
       await GameSessionService
         .withSchema(req.schema!)

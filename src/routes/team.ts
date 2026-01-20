@@ -3,6 +3,7 @@ import { schemaResolver } from "../db/schemaResolver";
 import { ErrorUtil } from "../util/errorUtil";
 import { TeamService } from "../service/team";
 import { SessionHelper } from "../common/middleware/sessionHelper";
+import { GameSessionService } from "../service/gameSession";
 
 const router = Router({ strict: true, caseSensitive: false });
 
@@ -14,12 +15,21 @@ router.use(schemaResolver);
 router.post("/", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
   try {
     const { sessionId, name } = req.body;
+    const loggedInUser = SessionHelper.getCurrentUserId(req);
 
-    const team = await TeamService
+    const session = await GameSessionService
       .withSchema(req.schema!)
-      .createTeam(sessionId, name);
+      .getGameSession(sessionId);
 
-    res.status(201).send(team);
+    if(session.hostUserId == loggedInUser) {
+      const team = await TeamService
+        .withSchema(req.schema!)
+        .createTeam(sessionId, name);
+
+      res.status(201).send(team);
+    } else {
+      res.status(400).send({ ERRMSG: "You are not the host for this game!" });
+    }
   } catch (error) {
     ErrorUtil.handleError(error, req, res);
   }
@@ -30,11 +40,20 @@ router.post("/", SessionHelper.isUserLoggedIn(), async (req: Request, res: Respo
  */
 router.get("/session/:sessionId", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
   try {
-    const teams = await TeamService
+    const userid = SessionHelper.getCurrentUserId(req);
+    const session = await GameSessionService
       .withSchema(req.schema!)
-      .getTeamsBySession(Number(req.params.sessionId));
+      .getGameSession(Number(req.params.sessionId));
 
-    res.status(200).send(teams);
+    if(session.hostUserId == userid) {
+      const teams = await TeamService
+        .withSchema(req.schema!)
+        .getTeamsBySession(Number(req.params.sessionId));
+
+      res.status(200).send(teams); 
+    } else {
+      res.status(400).send({ ERRMSG: "You are not the host for this game!" });
+    }
   } catch (error) {
     ErrorUtil.handleError(error, req, res);
   }
