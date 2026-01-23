@@ -117,7 +117,7 @@ export class AccountService {
             displayName: acc.displayName ?? acc.fullName,
             countryCode: acc.countryCode ?? "+1",
             phoneNo: acc.phoneNo,
-            email: (acc.email ?? "").toLowerCase(),
+            email: acc.email ? acc.email.toLowerCase() : null,
             password: hashString(acc.password),
             allowAccess: true
         } as any);

@@ -67,11 +67,9 @@ router.post("/join", SessionHelper.isUserLoggedIn(), [check('joinCode').notEmpty
       return res.status(400).json({ message: "Game already started" });
     }
 
+    // Find if anyone got the explicit invitation
     const invited = (await InviteService.withSchema(req.schema!).getInvitesBySession(session.id))
         .filter(i =>(user?.email && i.email === user.email) || (user?.phoneNo && i.mobile === user.phoneNo))
-    if (!Array.isArray(invited) || invited.length === 0) {
-      return res.status(403).json({message: "You are not invited to this session"});
-    }
 
     // Random team assignment
     const team = await TeamService.withSchema(req.schema!).findTeamWithLeastPlayers(session.id);
@@ -83,7 +81,10 @@ router.post("/join", SessionHelper.isUserLoggedIn(), [check('joinCode').notEmpty
       .withSchema(req.schema!)
       .joinSession({ sessionId: session.id, name: user?.fullName || "", teamId: team.id, userId: userId });
 
-    await InviteService.withSchema(req.schema!).markInviteUsed(invited.map(x => x.id));
+    // Mark all explicit invites as USED
+    if(invited.length !== 0) {
+      await InviteService.withSchema(req.schema!).markInviteUsed(invited.map(x => x.id));
+    }
 
     res.status(201).send(player);
   } catch (error) {

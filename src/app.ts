@@ -161,11 +161,11 @@ class App {
         session: true
       }, async (req, _email, password, callBack) => {
         try {
-          const email = req.body?.email || "";
+          const email = req.body?.email;
           const phoneNo = req.body?.phoneNo || "";
           const account = await AccountService.withSchema(req.schema!);
           await account.registerUser(req.body);
-          const isAuthenticated = await account.isAuthenticated(email.toLowerCase(), password, "", phoneNo);
+          const isAuthenticated = await account.isAuthenticated((email ?? "").toLowerCase(), password, "", phoneNo);
           callBack(null, isAuthenticated);
         } catch (error) {
           callBack(error);

@@ -64,7 +64,8 @@ export class TeamRepository {
       where: { sessionId },
       include: [
         {
-          model: Player,
+          model: Player.schema(this.schema),
+          as: "players",
           attributes: [],
           required: false
         }

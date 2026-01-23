@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import { dbService } from "../sequelize";
+import { Team } from "./team";
 
 /**
  * DB attributes

@@ -70,7 +70,7 @@ export class GameSessionService {
     }
 
     try {
-      if (!session || session.dataValues.status !== "LOBBY") {
+      if (!session || !['CREATED', 'LOBBY'].includes(session.dataValues.status)) {
         throw new Error("Game cannot be started");
       }
 

@@ -69,5 +69,5 @@ Team.init(
   }
 );
 
-Team.hasMany(Player, { foreignKey: "teamId" });
-Player.belongsTo(Team, { foreignKey: "teamId" });
+Team.hasMany(Player, { foreignKey: "teamId", sourceKey: "id", as: "players" });
+Player.belongsTo(Team, { foreignKey: "teamId", targetKey: "id", as: "team" });
