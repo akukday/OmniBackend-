@@ -1,3 +1,10 @@
+export interface GameCategoryResponse {
+  id: number;
+  code: string;
+  name: string;
+  description?: string;
+}
+
 export interface GameResponse {
     id: number;
     code: string;
@@ -9,4 +16,5 @@ export interface GameResponse {
     maxRounds: number;
     iconUrl?: string;
     themeColor?: string;
+    gameCategories?: GameCategoryResponse[];
   }

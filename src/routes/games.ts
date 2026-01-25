@@ -128,11 +128,13 @@ router.post("/game-session", SessionHelper.isUserLoggedIn(), async (req: Request
   router.post("/sessions/:sessionId/start", SessionHelper.isUserLoggedIn(),
     async (req: Request, res: Response) => {
       try {
-        await GameSessionService
+        const categoryIds = (req.body.categoryIds as string || "").split(",")
+          .map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+        const game = await GameSessionService
           .withSchema(req.schema!)
-          .startGameSession(Number(req.params.sessionId), SessionHelper.getCurrentUserId(req));
+          .startGameSession(Number(req.params.sessionId), SessionHelper.getCurrentUserId(req), categoryIds);
   
-        res.status(200).send({ message: "Game started" });
+        res.status(200).send(game);
       } catch (error) {
         ErrorUtil.handleError(error, req, res);
       }

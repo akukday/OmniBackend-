@@ -10,6 +10,7 @@ export interface GameSessionAttributes {
   hostUserId: string;
   joinCode: string;
   status: string;
+  categories: number[];
   currentRound?: number;
   videoLink?: string;
   createdAt?: Date;
@@ -33,6 +34,7 @@ export class GameSession
   public hostUserId!: string;
   public joinCode!: string;
   public currentRound?: number;
+  public categories!: number[];
   public status!: string; //CREATED → LOBBY → STARTED → ROUND_ACTIVE → COMPLETED
   public videoLink?: string;
   public createdAt?: Date;
@@ -61,6 +63,11 @@ GameSession.init(
       field: "join_code",
       allowNull: false,
       unique: true
+    },
+    categories: {
+      type: DataTypes.ARRAY(DataTypes.BIGINT),
+      field: "categories",
+      allowNull: false    
     },
     currentRound: {
       type: DataTypes.INTEGER,

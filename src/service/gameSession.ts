@@ -4,6 +4,9 @@ import { GameSessionRepository } from "../repository/gameSession";
 import { randomBytes } from "crypto";
 import { SessionQuestionRepository } from "../repository/sessionQuestion";
 import { GameRepository } from "../repository/games";
+import { GameService } from "./games";
+import { GameResponse } from "../common/model/games";
+import { GameCategoryRepository } from "../repository/gameCategory";
 
 export interface GameSessionResponse {
   id: number;
@@ -58,31 +61,62 @@ export class GameSessionService {
 
   public async startGameSession(
     sessionId: number,
-    userId: string
-  ): Promise<void> {
+    userId: string,
+    categoryIds: number[]
+  ): Promise<GameResponse> {
     const sequelize = dbService.dbModel;
     const transaction = await sequelize.transaction();
-    const session = await GameSessionRepository
-      .withSchema(this.schema)
-      .findById(sessionId, transaction);
-    if (session?.dataValues.hostUserId !== userId) {
-      throw new Error("You are not the host for this game!");
-    }
-
+    
     try {
+      const session = await GameSessionRepository
+        .withSchema(this.schema)
+        .findById(sessionId, transaction);
+      
+      if (session?.dataValues.hostUserId !== userId) {
+        throw new Error("You are not the host for this game!");
+      }
+
       if (!session || !['CREATED', 'LOBBY'].includes(session.dataValues.status)) {
         throw new Error("Game cannot be started");
       }
 
+      const gameId = session.dataValues.gameId;
+
+      // Validate and persist categories if provided
+      if (categoryIds && categoryIds.length > 0) {
+        // Verify all categories belong to this game
+        const gameCategories = await GameCategoryRepository
+          .withSchema(this.schema)
+          .findByGame(gameId, true, transaction);
+
+        const validCategoryIds = gameCategories.map(cat => { return cat?.dataValues.id });
+        const invalidCategoryIds = categoryIds.filter(id => !validCategoryIds.includes(id));
+
+        if (invalidCategoryIds.length > 0) {
+          throw new Error(`Invalid category IDs: ${invalidCategoryIds.join(', ')}`);
+        }
+      }
+
       await GameSessionRepository
         .withSchema(this.schema)
-        .startSession(sessionId, transaction);
+        .startSession(sessionId, categoryIds, transaction);
 
       await SessionQuestionRepository
         .withSchema(this.schema)
         .startRound(sessionId, 1, transaction);
 
       await transaction.commit();
+
+      // Fetch and return game with categories
+      const game = await GameService
+        .withSchema(this.schema)
+        .getGameById(gameId);
+
+      if (!game) {
+        throw new Error("Game not found");
+      }
+
+      return game;
     } catch (error) {
       await transaction.rollback();
       throw error;

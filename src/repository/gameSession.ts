@@ -28,9 +28,10 @@ export class GameSessionRepository {
 
   public async startSession(
     sessionId: number,
+    categories: number[],
     t: Transaction
   ): Promise<void> {
-    await this._repo.update({ status: "ROUND_ACTIVE", currentRound: 1 },
+    await this._repo.update({ status: "ROUND_ACTIVE", categories: categories, currentRound: 1 },
       { where: { id: sessionId }, transaction: t }
     );
   }

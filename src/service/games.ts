@@ -1,6 +1,8 @@
 import { GameAttributes } from "../db/model/games";
 import { GameRepository } from "../repository/games";
-import { GameResponse } from "../common/model/games";
+import { GameCategoryRepository } from "../repository/gameCategory";
+import { GameResponse, GameCategoryResponse } from "../common/model/games";
+import { GameCategoryAttributes } from "../db/model/gameCategory";
 
 export class GameService {
   constructor(private schema: string) {}
@@ -12,8 +14,18 @@ export class GameService {
   /**
    * Transform DB model → API response
    */
-  private transformResult(result: any): GameResponse {
+  private transformResult(result: any, categories?: any[]): GameResponse {
     result = result?.dataValues as GameAttributes;
+    const gameCategories: GameCategoryResponse[] | undefined = categories?.map(cat => {
+      const catData = cat?.dataValues || cat;
+      return {
+        id: catData?.id,
+        code: catData?.code,
+        name: catData?.name,
+        description: catData?.description
+      };
+    });
+    
     return {
       id: result?.id ?? 0,
       code: result?.code ?? "",
@@ -24,7 +36,8 @@ export class GameService {
       maxPlayers: result?.maxPlayers ?? 20,
       maxRounds: result?.maxRounds ?? 0,
       iconUrl: result?.iconUrl ?? "",
-      themeColor: result?.themeColor ?? ""
+      themeColor: result?.themeColor ?? "",
+      gameCategories: gameCategories
     };
   }
 
@@ -36,7 +49,16 @@ export class GameService {
       .withSchema(this.schema)
       .findAllActive();
 
-    return games.map(game => this.transformResult(game));
+    const gameResponses = await Promise.all(
+      games.map(async (game) => {
+        const categories = await GameCategoryRepository
+          .withSchema(this.schema)
+          .findByGame(game.dataValues.id, true);
+        return this.transformResult(game, categories);
+      })
+    );
+
+    return gameResponses;
   }
 
   /**
@@ -47,7 +69,15 @@ export class GameService {
       .withSchema(this.schema)
       .findById(gameId);
 
-    return game ? this.transformResult(game) : null;
+    if (!game) {
+      return null;
+    }
+
+    const categories = await GameCategoryRepository
+      .withSchema(this.schema)
+      .findByGame(gameId, true);
+
+    return this.transformResult(game, categories);
   }
 
   /**
@@ -58,7 +88,15 @@ export class GameService {
       .withSchema(this.schema)
       .findByCode(code);
 
-    return game ? this.transformResult(game) : null;
+    if (!game) {
+      return null;
+    }
+
+    const categories = await GameCategoryRepository
+      .withSchema(this.schema)
+      .findByGame(game.id, true);
+
+    return this.transformResult(game, categories);
   }
 
   /**
