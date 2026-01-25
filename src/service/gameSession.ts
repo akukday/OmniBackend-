@@ -51,6 +51,7 @@ export class GameSessionService {
       .createSession({
         gameId,
         hostUserId,
+        categories: [],
         currentRound: 0,
         joinCode: this.generateJoinCode(),
         status: "CREATED"
@@ -89,8 +90,8 @@ export class GameSessionService {
           .withSchema(this.schema)
           .findByGame(gameId, true, transaction);
 
-        const validCategoryIds = gameCategories.map(cat => { return cat?.dataValues.id });
-        const invalidCategoryIds = categoryIds.filter(id => !validCategoryIds.includes(id));
+        const validCategoryIds = gameCategories.map(cat => cat?.dataValues.id).map(Number);
+        const invalidCategoryIds = categoryIds.filter(id => !validCategoryIds.includes(id) );
 
         if (invalidCategoryIds.length > 0) {
           throw new Error(`Invalid category IDs: ${invalidCategoryIds.join(', ')}`);
