@@ -1,5 +1,10 @@
 import { SessionQuestionAttributes } from "../db/model/sessionQuestion";
 import { SessionQuestionRepository } from "../repository/sessionQuestion";
+import { QuestionResponse } from "./question";
+import { QuestionOptionResponse } from "./questionOption";
+import { QuestionOptionService } from "./questionOption";
+import { QuestionRepository } from "../repository/question";
+import { Transaction } from "sequelize";
 
 export interface SessionQuestionResponse {
   id: number;
@@ -8,6 +13,8 @@ export interface SessionQuestionResponse {
   roundNumber: number;
   startedAt?: Date;
   endedAt?: Date;
+  question?: QuestionResponse;
+  options?: QuestionOptionResponse[];
 }
 
 export class SessionQuestionService {
@@ -51,21 +58,45 @@ export class SessionQuestionService {
     return questions.map(q => this.transform(q));
   }
 
-  public async startRound(
-    sessionId: number,
-    roundNumber: number
-  ): Promise<void> {
-    const sq = await SessionQuestionRepository
-      .withSchema(this.schema)
-      .findBySessionAndRound(sessionId, roundNumber);
+  public async startRound(sessionId: number, roundNumber: number, t?: Transaction): Promise<SessionQuestionResponse> {
+    const sq = await SessionQuestionRepository.withSchema(this.schema)
+      .findBySessionAndRound(sessionId, roundNumber, t);
 
     if (!sq) {
       throw new Error("Round not found");
     }
 
-    await SessionQuestionRepository
-      .withSchema(this.schema)
-      .startRound(sq.id, roundNumber);
+    const updated = await SessionQuestionRepository.withSchema(this.schema)
+      .startRound(sessionId, roundNumber, t);
+
+    if (!updated) {
+      throw new Error("Failed to start round");
+    }
+
+    const response = this.transform(updated);
+
+    // Fetch question details
+    const questionData = await QuestionRepository.withSchema(this.schema)
+      .findById(response.questionId, t);
+
+    if (questionData) {
+      const questionResponse: QuestionResponse = {
+        id: questionData.dataValues.id,
+        gameId: questionData.dataValues.gameId,
+        type: questionData.dataValues.type,
+        questionText: questionData.dataValues.questionText,
+        mediaUrl: questionData.dataValues.mediaUrl,
+        answerType: questionData.dataValues.answerType ?? "SINGLE"
+      };
+      response.question = questionResponse;
+
+      // Fetch options
+      const options = await QuestionOptionService.withSchema(this.schema)
+        .getOptionsByQuestion(updated.dataValues.questionId, t);
+      response.options = options;
+    }
+
+    return response;
   }
 
   public async endRound(

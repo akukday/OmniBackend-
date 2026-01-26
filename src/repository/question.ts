@@ -1,4 +1,4 @@
-import { ModelStatic, Transaction } from "sequelize";
+import { ModelStatic, Op, QueryTypes, Transaction } from "sequelize";
 import { Question } from "../db/model/question";
 
 export class QuestionRepository {
@@ -28,6 +28,33 @@ export class QuestionRepository {
       order: [["id", "ASC"]],
       transaction: t
     });
+  }
+
+  public async findByGameAndCategories(gameId: number, categoryIds: number[], t?: Transaction): Promise<Question[]> {
+    const sequelize = this._repo.sequelize;
+    const placeholders = categoryIds.map((_, i) => `$${i + 1}`).join(', ');
+    
+    const query = `
+      SELECT * FROM ${this.schema}.questions
+      WHERE game_id = $${categoryIds.length + 1}
+      AND category_id IN (${placeholders})
+      ORDER BY id ASC
+    `;
+
+    try {
+      const results = await sequelize?.query(query, {
+        bind: [...categoryIds, gameId],
+        type: QueryTypes.SELECT,
+        transaction: t
+      }) as any[];
+      
+      if (Array.isArray(results) && results.length > 0) {
+        return results.map((row: any) => this._repo.build(row, { isNewRecord: false }));
+      }
+      return [];
+    } catch (error: any) {
+      throw error;
+    }
   }
 
   public async findById(

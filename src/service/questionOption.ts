@@ -1,5 +1,6 @@
 import { QuestionOptionAttributes } from "../db/model/questionOption";
 import { QuestionOptionRepository } from "../repository/questionOption";
+import { Transaction } from "sequelize";
 
 export interface QuestionOptionResponse {
   id: number;
@@ -63,11 +64,12 @@ export class QuestionOptionService {
   }
 
   public async getOptionsByQuestion(
-    questionId: number
+    questionId: number,
+    t?: Transaction
   ): Promise<QuestionOptionResponse[]> {
     const options = await QuestionOptionRepository
       .withSchema(this.schema)
-      .findByQuestion(questionId);
+      .findByQuestion(questionId, t);
 
     return options.map(o => this.transform(o));
   }

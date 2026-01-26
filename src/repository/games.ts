@@ -1,4 +1,4 @@
-import { ModelStatic, Op, Transaction } from "sequelize";
+import { ModelStatic, Transaction } from "sequelize";
 import { Game } from "../db/model/games";
 
 export class GameRepository {

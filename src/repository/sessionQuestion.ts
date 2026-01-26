@@ -41,22 +41,19 @@ export class SessionQuestionRepository {
     });
   }
 
-  public async startRound(
-    sessionId: number,
-    roundNumber: number,
-    t?: Transaction
-  ): Promise<void> {
+  public async startRound(sessionId: number, roundNumber: number, t?: Transaction): Promise<SessionQuestion | null> {
     await this._repo.update(
       { startedAt: new Date() },
       { where: { sessionId, roundNumber }, transaction: t }
     );
+    
+    return this._repo.findOne({
+      where: { sessionId, roundNumber },
+      transaction: t
+    });
   }
 
-  public async endRound(
-    sessionId: number,
-    roundNumber: number,
-    t?: Transaction
-  ): Promise<void> {
+  public async endRound(sessionId: number, roundNumber: number, t?: Transaction): Promise<void> {
     await this._repo.update(
       { endedAt: new Date() },
       { where: { sessionId, roundNumber }, transaction: t }

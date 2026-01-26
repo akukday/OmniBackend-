@@ -4,9 +4,9 @@ import { GameSessionRepository } from "../repository/gameSession";
 import { randomBytes } from "crypto";
 import { SessionQuestionRepository } from "../repository/sessionQuestion";
 import { GameRepository } from "../repository/games";
-import { GameService } from "./games";
-import { GameResponse } from "../common/model/games";
 import { GameCategoryRepository } from "../repository/gameCategory";
+import { QuestionRepository } from "../repository/question";
+import { SessionQuestionResponse, SessionQuestionService } from "./sessionQuestion";
 
 export interface GameSessionResponse {
   id: number;
@@ -60,17 +60,10 @@ export class GameSessionService {
     return this.transform(session);
   }
 
-  public async startGameSession(
-    sessionId: number,
-    userId: string,
-    categoryIds: number[]
-  ): Promise<GameResponse> {
-    const sequelize = dbService.dbModel;
-    const transaction = await sequelize.transaction();
-    
+  public async startGameSession(sessionId: number, userId: string, categoryIds: number[]): Promise<SessionQuestionResponse> {
+    const transaction = await dbService.dbModel.transaction();
     try {
-      const session = await GameSessionRepository
-        .withSchema(this.schema)
+      const session = await GameSessionRepository.withSchema(this.schema)
         .findById(sessionId, transaction);
       
       if (session?.dataValues.hostUserId !== userId) {
@@ -83,41 +76,61 @@ export class GameSessionService {
 
       const gameId = session.dataValues.gameId;
 
-      // Validate and persist categories if provided
+      // Validate and persist categories if provided. Verify all categories belong to this game
       if (categoryIds && categoryIds.length > 0) {
-        // Verify all categories belong to this game
         const gameCategories = await GameCategoryRepository
           .withSchema(this.schema)
           .findByGame(gameId, true, transaction);
 
         const validCategoryIds = gameCategories.map(cat => cat?.dataValues.id).map(Number);
-        const invalidCategoryIds = categoryIds.filter(id => !validCategoryIds.includes(id) );
-
+        const invalidCategoryIds = categoryIds.filter(id => !validCategoryIds.includes(id));
         if (invalidCategoryIds.length > 0) {
           throw new Error(`Invalid category IDs: ${invalidCategoryIds.join(', ')}`);
         }
       }
 
-      await GameSessionRepository
-        .withSchema(this.schema)
+      await GameSessionRepository.withSchema(this.schema)
         .startSession(sessionId, categoryIds, transaction);
 
-      await SessionQuestionRepository
-        .withSchema(this.schema)
-        .startRound(sessionId, 1, transaction);
-
-      await transaction.commit();
-
-      // Fetch and return game with categories
-      const game = await GameService
-        .withSchema(this.schema)
-        .getGameById(gameId);
+      const game = await GameRepository.withSchema(this.schema)
+        .findById(gameId, transaction);
 
       if (!game) {
         throw new Error("Game not found");
       }
 
-      return game;
+      const maxRounds = game.dataValues.maxRounds;
+      const allQuestions: any[] = categoryIds && categoryIds.length > 0
+        ? await QuestionRepository.withSchema(this.schema).findByGameAndCategories(gameId, categoryIds, transaction)
+        : await QuestionRepository.withSchema(this.schema).findByGame(gameId, transaction);
+      
+      if (allQuestions.length === 0) {
+        throw new Error("No questions available for this game" + 
+          (categoryIds && categoryIds.length > 0 ? " with the selected categories" : ""));
+      }
+
+      // Randomly select one question per round
+      const availableQuestions = [...allQuestions];
+      for (let round = 1; round <= maxRounds; round++) {
+        if (availableQuestions.length === 0) {
+          availableQuestions.push(...allQuestions); // If we run out of questions, reuse them
+        }
+        // Randomly select a question
+        const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+        const selectedQuestion = availableQuestions.splice(randomIndex, 1)[0];
+
+        // Create SessionQuestion entry for this round
+        await SessionQuestionRepository.withSchema(this.schema)
+          .create({sessionId, questionId: selectedQuestion.dataValues.id, roundNumber: round} as any, transaction);
+      }
+
+      // Start round 1
+      const response = await SessionQuestionService.withSchema(this.schema)
+        .startRound(sessionId, 1, transaction);
+
+      await transaction.commit();
+
+      return response;
     } catch (error) {
       await transaction.rollback();
       throw error;
@@ -179,7 +192,6 @@ export class GameSessionService {
       const game = await GameRepository.withSchema(this.schema).findById(session.dataValues.gameId, t);
       const currentRound = session.currentRound;
       const maxRounds = game?.dataValues.maxRounds;
-
 
       if ((currentRound ?? 0) >= (maxRounds ?? 1)) {
         await GameSessionRepository

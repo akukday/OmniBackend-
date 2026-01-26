@@ -97,14 +97,14 @@ router.get("/session/:sessionId", async (req: Request, res: Response) => {
  */
 router.post("/session/:sessionId/round/:round/start", async (req, res) => {
   try {
-    await SessionQuestionService
+    const result = await SessionQuestionService
       .withSchema(req.schema!)
       .startRound(
         Number(req.params.sessionId),
         Number(req.params.round)
       );
 
-    res.status(200).send({ message: "Round started" });
+    res.status(200).send(result);
   } catch (error) {
     ErrorUtil.handleError(error, req, res);
   }

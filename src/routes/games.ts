@@ -130,28 +130,20 @@ router.post("/game-session", SessionHelper.isUserLoggedIn(), async (req: Request
       try {
         const categoryIds = (req.body.categoryIds as string || "").split(",")
           .map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
-        const game = await GameSessionService
-          .withSchema(req.schema!)
+        const response = await GameSessionService.withSchema(req.schema!)
           .startGameSession(Number(req.params.sessionId), SessionHelper.getCurrentUserId(req), categoryIds);
   
-        res.status(200).send(game);
+        res.status(200).send(response);
       } catch (error) {
         ErrorUtil.handleError(error, req, res);
       }
     }
   );
 
-  /**
- * POST /api/host/sessions/:sessionId/rounds/start
- */
   router.post("/sessions/:sessionId/rounds/start", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
     try {
-      const message = await GameSessionService
-        .withSchema(req.schema!)
-        .startNextRound(
-          Number(req.params.sessionId),
-          SessionHelper.getCurrentUserId(req)
-        );
+      const message = await GameSessionService.withSchema(req.schema!)
+        .startNextRound(Number(req.params.sessionId), SessionHelper.getCurrentUserId(req));
 
       res.status(200).send({ message });
     } catch (error) {
