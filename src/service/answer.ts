@@ -1,5 +1,7 @@
-import { AnswerAttributes } from "../db/model/answer";
+import { AnswerAttributes, AnswerCreationAttributes } from "../db/model/answer";
 import { AnswerRepository } from "../repository/answer";
+import { SessionQuestionRepository } from "../repository/sessionQuestion";
+import { QuestionOptionRepository } from "../repository/questionOption";
 
 export interface AnswerResponse {
   id: number;
@@ -34,22 +36,44 @@ export class AnswerService {
   public async submitAnswer(payload: {
     sessionQuestionId: number;
     teamId: number;
-    userId?: number;
     answerId?: number;
     answer?: string;
-  }): Promise<AnswerResponse> {
-    // Prevent duplicate answers per team per question
-    const existing = await AnswerRepository
+  }, userId: string): Promise<AnswerResponse> {
+    // Verify session question exists
+    const sessionQuestion = await SessionQuestionRepository
       .withSchema(this.schema)
-      .findTeamAnswer(payload.sessionQuestionId, payload.teamId);
+      .findById(payload.sessionQuestionId);
 
-    if (existing) {
-      throw new Error("Answer already submitted for this round");
+    if (!sessionQuestion) {
+      throw new Error("Session question not found");
     }
+
+    let isCorrect: boolean | undefined = undefined;
+
+    // If answerId is provided, check if the option is correct
+    if (payload.answerId) {
+      const questionOption = await QuestionOptionRepository
+        .withSchema(this.schema)
+        .findById(payload.answerId);
+      
+      if (questionOption) {
+        isCorrect = questionOption.dataValues.isCorrect;
+      }
+    }
+    // Prepare answer payload with all relevant parameters
+    const answerPayload: AnswerCreationAttributes = {
+      sessionQuestionId: payload.sessionQuestionId,
+      teamId: payload.teamId,
+      userId: userId,
+      answerId: payload.answerId,
+      answer: payload.answer,
+      isCorrect: isCorrect,
+      answeredAt: new Date()
+    };
 
     const created = await AnswerRepository
       .withSchema(this.schema)
-      .submitAnswer(payload as any);
+      .submitAnswer(answerPayload as any);
 
     return this.transform(created);
   }

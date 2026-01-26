@@ -53,26 +53,6 @@ router.get("/:id", SessionHelper.isUserLoggedIn(), async (req: Request, res: Res
   }
 );
 
-router.get("/code/:code", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const schema = req.schema!;
-      const code = req.params.code;
-
-      const game = await GameService
-        .withSchema(schema)
-        .getGameByCode(code);
-
-      if (!game) {
-        return res.status(404).send({ ERRMSG: "Game not found" });
-      }
-
-      res.status(200).send(game);
-    } catch (error) {
-      ErrorUtil.handleError(error, req, res);
-    }
-  }
-);
-
 router.post("/", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const schema = req.schema;
@@ -146,21 +126,6 @@ router.post("/game-session", SessionHelper.isUserLoggedIn(), async (req: Request
         .startNextRound(Number(req.params.sessionId), SessionHelper.getCurrentUserId(req));
 
       res.status(200).send(result);
-    } catch (error) {
-      ErrorUtil.handleError(error, req, res);
-    }
-  });
-  
-  /**
-   * End game session
-   */
-  router.post("/sessions/:id/end", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
-    try {
-      await GameSessionService
-        .withSchema(req.schema!)
-        .endSession(Number(req.params.id));
-  
-      res.status(200).send({ message: "Game session ended" });
     } catch (error) {
       ErrorUtil.handleError(error, req, res);
     }

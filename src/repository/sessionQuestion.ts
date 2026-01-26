@@ -30,6 +30,16 @@ export class SessionQuestionRepository {
     });
   }
 
+  public async findById(
+    id: number,
+    t?: Transaction
+  ): Promise<SessionQuestion | null> {
+    return this._repo.findOne({
+      where: { id },
+      transaction: t
+    });
+  }
+
   public async findBySessionAndRound(
     sessionId: number,
     roundNumber: number,

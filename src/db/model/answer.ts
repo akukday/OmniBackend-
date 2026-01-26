@@ -8,7 +8,7 @@ export interface AnswerAttributes {
   id: number;
   sessionQuestionId: number;
   teamId: number;
-  userId?: number;
+  userId?: string;
   answerId?: number;
   answer?: string;
   isCorrect?: boolean;
@@ -28,7 +28,7 @@ export class Answer extends Model<AnswerAttributes, AnswerCreationAttributes> im
   public id!: number;
   public sessionQuestionId!: number;
   public teamId!: number;
-  public userId?: number;
+  public userId?: string;
   public answerId?: number;
   public answer?: string;
   public isCorrect?: boolean;
@@ -53,7 +53,7 @@ Answer.init(
       allowNull: false
     },
     userId: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.STRING,
       field: "user_id",
       allowNull: true
     },

@@ -47,4 +47,14 @@ export class QuestionOptionRepository {
       transaction: t
     });
   }
+
+  public async findById(
+    id: number,
+    t?: Transaction
+  ): Promise<QuestionOption | null> {
+    return this._repo.findOne({
+      where: { id },
+      transaction: t
+    });
+  }
 }

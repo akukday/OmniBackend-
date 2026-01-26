@@ -64,7 +64,7 @@ router.post("/answer", SessionHelper.isUserLoggedIn(), async (req: Request, res:
   try {
     const result = await AnswerService
       .withSchema(req.schema!)
-      .submitAnswer(req.body);
+      .submitAnswer(req.body, SessionHelper.getCurrentUserId(req));
 
     res.status(201).send(result);
   } catch (error) {
