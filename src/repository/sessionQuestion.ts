@@ -45,7 +45,12 @@ export class SessionQuestionRepository {
     await this._repo.update(
       { startedAt: new Date() },
       { where: { sessionId, roundNumber }, transaction: t }
-    );
+    ); // Update startedAt timestamp to track the round
+
+    await this._repo.update(
+      { endedAt: new Date() },
+      { where: { sessionId, roundNumber: roundNumber-1 }, transaction: t }
+    ); // Update the endedAt for preious round
     
     return this._repo.findOne({
       where: { sessionId, roundNumber },

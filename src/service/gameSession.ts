@@ -171,15 +171,11 @@ export class GameSessionService {
       .endSession(sessionId);
   }
 
-  public async startNextRound(
-    sessionId: number,
-    userId: string
-  ): Promise<string> {
+  public async startNextRound(sessionId: number, userId: string): Promise<SessionQuestionResponse | { message: string }> {
     const sequelize = dbService.dbModel;
     const t = await sequelize.transaction();
 
-    const session = await GameSessionRepository
-      .withSchema(this.schema)
+    const session = await GameSessionRepository.withSchema(this.schema)
       .findById(sessionId, t);
     if (session?.dataValues.hostUserId !== userId) {
       throw new Error("You are not the host for this game!");
@@ -190,7 +186,7 @@ export class GameSessionService {
         throw new Error("Cannot start next round");
       }
       const game = await GameRepository.withSchema(this.schema).findById(session.dataValues.gameId, t);
-      const currentRound = session.currentRound;
+      const currentRound = session.dataValues.currentRound;
       const maxRounds = game?.dataValues.maxRounds;
 
       if ((currentRound ?? 0) >= (maxRounds ?? 1)) {
@@ -198,22 +194,22 @@ export class GameSessionService {
           .withSchema(this.schema)
           .completeSession(sessionId, t);
 
+        await SessionQuestionRepository.withSchema(this.schema)
+          .endRound(sessionId, currentRound ?? 0, t); // Update the endedAt for preious round
+
         await t.commit();
-        return "Game completed";
+        return { message: "Game completed" };
       }
 
-      const nextRound = currentRound ?? 0 + 1;
-
-      await GameSessionRepository
-        .withSchema(this.schema)
+      const nextRound = (currentRound ?? 0) + 1;
+      await GameSessionRepository.withSchema(this.schema)
         .activateRound(sessionId, nextRound, t);
 
-      await SessionQuestionRepository
-        .withSchema(this.schema)
+      const response = await SessionQuestionService.withSchema(this.schema)
         .startRound(sessionId, nextRound, t);
 
       await t.commit();
-      return `Round ${nextRound} started`;
+      return response;
     } catch (error) {
       await t.rollback();
       throw error;

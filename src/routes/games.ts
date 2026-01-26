@@ -140,12 +140,12 @@ router.post("/game-session", SessionHelper.isUserLoggedIn(), async (req: Request
     }
   );
 
-  router.post("/sessions/:sessionId/rounds/start", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
+  router.post("/sessions/:sessionId/next-round", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
     try {
-      const message = await GameSessionService.withSchema(req.schema!)
+      const result = await GameSessionService.withSchema(req.schema!)
         .startNextRound(Number(req.params.sessionId), SessionHelper.getCurrentUserId(req));
 
-      res.status(200).send({ message });
+      res.status(200).send(result);
     } catch (error) {
       ErrorUtil.handleError(error, req, res);
     }
