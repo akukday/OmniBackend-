@@ -78,21 +78,6 @@ router.post("/session", async (req: Request, res: Response) => {
 });
 
 /**
- * Get all session questions
- */
-router.get("/session/:sessionId", async (req: Request, res: Response) => {
-  try {
-    const result = await SessionQuestionService
-      .withSchema(req.schema!)
-      .getSessionQuestions(Number(req.params.sessionId));
-
-    res.status(200).send(result);
-  } catch (error) {
-    ErrorUtil.handleError(error, req, res);
-  }
-});
-
-/**
  * Start round
  */
 router.post("/session/:sessionId/round/:round/start", async (req, res) => {

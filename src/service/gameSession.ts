@@ -171,6 +171,18 @@ export class GameSessionService {
       .endSession(sessionId);
   }
 
+  public async currentRound(sessionId: number): Promise<SessionQuestionResponse> {
+    const session = await GameSessionRepository.withSchema(this.schema)
+      .findById(sessionId);
+    if (!session || session?.dataValues.status == "COMPLETED") {
+      throw new Error("Game is completed!");
+    }
+    
+    const currentRound = session.dataValues.currentRound;
+
+    return await SessionQuestionService.withSchema(this.schema).findBySessionAndRound(sessionId, currentRound ?? 0)
+  }
+
   public async startNextRound(sessionId: number, userId: string): Promise<SessionQuestionResponse | { message: string }> {
     const sequelize = dbService.dbModel;
     const t = await sequelize.transaction();

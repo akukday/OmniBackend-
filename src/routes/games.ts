@@ -131,5 +131,18 @@ router.post("/game-session", SessionHelper.isUserLoggedIn(), async (req: Request
     }
   });
   
+  /**
+   * Current round
+   */
+  router.get("/session/:sessionId/current-round", async (req, res) => {
+    try {
+      const result = await GameSessionService.withSchema(req.schema!)
+      .currentRound(Number(req.params.sessionId));
+
+      res.status(200).send(result);
+    } catch (error) {
+      ErrorUtil.handleError(error, req, res);
+    }
+  });
 
 export default router;

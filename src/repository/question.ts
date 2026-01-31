@@ -57,10 +57,7 @@ export class QuestionRepository {
     }
   }
 
-  public async findById(
-    id: number,
-    t?: Transaction
-  ): Promise<Question | null> {
+  public async findById(id: number, t?: Transaction): Promise<Question | null> {
     return this._repo.findOne({ where: { id }, transaction: t });
   }
 

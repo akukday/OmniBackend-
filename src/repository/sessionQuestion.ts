@@ -40,15 +40,8 @@ export class SessionQuestionRepository {
     });
   }
 
-  public async findBySessionAndRound(
-    sessionId: number,
-    roundNumber: number,
-    t?: Transaction
-  ): Promise<SessionQuestion | null> {
-    return this._repo.findOne({
-      where: { sessionId, roundNumber },
-      transaction: t
-    });
+  public async findBySessionAndRound(sessionId: number, roundNumber: number, t?: Transaction): Promise<SessionQuestion | null> {
+    return this._repo.findOne({where: { sessionId, roundNumber }, transaction: t});
   }
 
   public async startRound(sessionId: number, roundNumber: number, t?: Transaction): Promise<SessionQuestion | null> {
@@ -56,7 +49,6 @@ export class SessionQuestionRepository {
       { startedAt: new Date() },
       { where: { sessionId, roundNumber }, transaction: t }
     ); // Update startedAt timestamp to track the round
-
     await this._repo.update(
       { endedAt: new Date() },
       { where: { sessionId, roundNumber: roundNumber-1 }, transaction: t }

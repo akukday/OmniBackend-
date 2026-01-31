@@ -13,6 +13,13 @@ export interface AnswerResponse {
   answeredAt?: Date;
 }
 
+export interface FirstAnswerResponse {
+  answered: boolean;
+  teamId?: number;
+  teamName?: string;
+  answeredAt?: Date;
+}
+
 export class AnswerService {
   constructor(private schema: string) {}
 
@@ -86,6 +93,23 @@ export class AnswerService {
       .findBySessionQuestion(sessionQuestionId);
 
     return answers.map(a => this.transform(a));
+  }
+
+  public async getFirstCorrectAnswer(sessionId: number, questionId: number): Promise<FirstAnswerResponse> {
+    const rows: any[] = await AnswerRepository.withSchema(this.schema)
+      .findFirstAnswer(sessionId, questionId);
+
+    if (!rows || rows.length === 0) {
+      return { answered: false };
+    }
+
+    const first = rows[0];
+    return {
+      answered: true,
+      teamId: first.team_id,
+      teamName: first.team_name,
+      answeredAt: first.answered_at
+    };
   }
 
   /**

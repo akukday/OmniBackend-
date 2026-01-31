@@ -1,4 +1,4 @@
-import { ModelStatic, Transaction } from "sequelize";
+import { ModelStatic, QueryTypes, Transaction } from "sequelize";
 import { Answer } from "../db/model/answer";
 
 export class AnswerRepository {
@@ -48,6 +48,30 @@ export class AnswerRepository {
     await this._repo.update(
       { isCorrect },
       { where: { id }, transaction: t }
+    );
+  }
+
+  public async findFirstAnswer(sessionId: number, questionId: number) {
+    return this._repo.sequelize!.query(
+      `
+      SELECT 
+        a.id,
+        a.answered_at,
+        t.id   AS team_id,
+        t.name AS team_name
+      FROM ${this.schema}.answers a
+      JOIN ${this.schema}.session_questions sq ON sq.id = a.session_question_id
+      JOIN ${this.schema}.teams t ON t.id = a.team_id
+      WHERE sq.session_id = :sessionId
+        AND sq.question_id = :questionId
+        AND a.is_correct = true
+      ORDER BY a.answered_at ASC
+      LIMIT 1
+      `,
+      {
+        replacements: { sessionId, questionId },
+        type: QueryTypes.SELECT
+      }
     );
   }
 }

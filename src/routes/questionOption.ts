@@ -105,4 +105,19 @@ router.post("/:answerId/evaluate", SessionHelper.isUserLoggedIn(), async (req: R
   }
 });
 
+/**
+ * Evaluate answer (host)
+ */
+router.get("/sessions/:sessionId/questions/:questionId/first-answer", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
+  try {
+    const { sessionId, questionId } = req.params;
+    const result = await AnswerService.withSchema(req.schema!)
+      .getFirstCorrectAnswer(Number(sessionId), Number(questionId));
+
+    res.status(200).send(result);
+  } catch (error) {
+    ErrorUtil.handleError(error, req, res);
+  }
+});
+
 export default router;

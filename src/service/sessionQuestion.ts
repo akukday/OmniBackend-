@@ -58,6 +58,36 @@ export class SessionQuestionService {
     return questions.map(q => this.transform(q));
   }
 
+  public async findBySessionAndRound(sessionId: number, roundNumber: number, t?: Transaction): Promise<SessionQuestionResponse> {
+    const sessionQuestion = await SessionQuestionRepository.withSchema(this.schema)
+      .findBySessionAndRound(sessionId, roundNumber ?? 0);
+
+    const response = this.transform(sessionQuestion);
+
+    const questionData = await QuestionRepository.withSchema(this.schema)
+    .findById(sessionQuestion?.dataValues.questionId || 0);
+
+    if (questionData) {
+      const questionResponse: QuestionResponse = {
+        id: questionData.dataValues.id,
+        gameId: questionData.dataValues.gameId,
+        type: questionData.dataValues.type,
+        questionText: questionData.dataValues.questionText,
+        mediaUrl: questionData.dataValues.mediaUrl,
+        answerType: questionData.dataValues.answerType ?? "SINGLE"
+      };
+      response.question = questionResponse;
+
+      // Fetch options
+      const options = await QuestionOptionService.withSchema(this.schema)
+        .getOptionsByQuestion(sessionQuestion?.dataValues.questionId || 0, t);
+      response.options = options;
+    }
+    return response
+  }
+
+
+
   public async startRound(sessionId: number, roundNumber: number, t?: Transaction): Promise<SessionQuestionResponse> {
     const sq = await SessionQuestionRepository.withSchema(this.schema)
       .findBySessionAndRound(sessionId, roundNumber, t);
