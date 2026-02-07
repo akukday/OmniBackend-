@@ -1,6 +1,13 @@
 import { QuestionAttributes } from "../db/model/question";
 import { QuestionRepository } from "../repository/question";
 
+interface QuestionOptionResponse {
+  id: number;
+  optionText: string;
+  isCorrect: boolean;
+  displayOrder: number;
+}
+
 export interface QuestionResponse {
   id: number;
   gameId: number;
@@ -8,6 +15,7 @@ export interface QuestionResponse {
   questionText?: string;
   mediaUrl?: string;
   answerType: string;
+  options?: QuestionOptionResponse[];
 }
 
 export class QuestionService {
@@ -25,7 +33,16 @@ export class QuestionService {
       type: result.type,
       questionText: result.questionText,
       mediaUrl: result.mediaUrl,
-      answerType: result.answerType ?? "SINGLE"
+      answerType: result.answerType ?? "SINGLE",
+      options: (result?.options as any)?.map((opt: any) => {
+        const o = opt.dataValues;
+        return {
+          id: o.id,
+          optionText: o.optionText,
+          isCorrect: o.isCorrect,
+          displayOrder: o.displayOrder
+        };
+      }) ?? []
     };
   }
 

@@ -27,6 +27,21 @@ class App {
 
   constructor() {
     this.app = express();
+    const corsOptions = {
+      origin: (origin, callback) => {
+        if (!origin || origin.includes('event-platform.org') || origin.includes('localhost')) {
+          // Allow requests with no origin (e.g., mobile apps or Postman)
+          callback(null, true);
+        } else {
+          // Reject requests from unknown origins
+          callback(new Error('Not allowed by CORS '+ origin));
+        }
+      },
+      credentials: true // Allow cookies to be sent and received
+    };
+    this.app.use(cors(corsOptions))
+    this.app.options("*", cors());
+
     this.config();
     this.initiateSessionModules();
     this.registerPublicRoutes();
@@ -81,20 +96,6 @@ class App {
       next()
     })
     this.app.use(cookieParser());
-    // Dynamic CORS options
-    const corsOptions = {
-      origin: (origin, callback) => {
-        if (!origin || origin.includes('event-platform.org') || origin.includes('localhost')) {
-          // Allow requests with no origin (e.g., mobile apps or Postman)
-          callback(null, true);
-        } else {
-          // Reject requests from unknown origins
-          callback(new Error('Not allowed by CORS '+ origin));
-        }
-      },
-      credentials: true // Allow cookies to be sent and received
-    };
-    this.app.use(cors(corsOptions))
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: true }));
   }

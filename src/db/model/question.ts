@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import { dbService } from "../sequelize";
+import { QuestionOption, QuestionOptionAttributes } from "./questionOption";
 
 /**
  * DB attributes
@@ -12,6 +13,7 @@ export interface QuestionAttributes {
   mediaUrl?: string;
   answerType?: string;
   createdAt?: Date;
+  options?: QuestionOptionAttributes[];
 }
 
 /**
@@ -31,6 +33,7 @@ export class Question extends Model<QuestionAttributes, QuestionCreationAttribut
   public mediaUrl?: string;
   public answerType?: string;
   public createdAt?: Date;
+  public options?: QuestionOption[];
 }
 
 Question.init(
@@ -76,3 +79,12 @@ Question.init(
     timestamps: false
   }
 );
+
+Question.hasMany(QuestionOption, {
+  as: "options",
+  foreignKey: "questionId"
+});
+
+QuestionOption.belongsTo(Question, {
+  foreignKey: "questionId"
+});

@@ -1,5 +1,6 @@
 import { ModelStatic, Op, QueryTypes, Transaction } from "sequelize";
 import { Question } from "../db/model/question";
+import { QuestionOption } from "../db/model/questionOption";
 
 export class QuestionRepository {
   private _repo: ModelStatic<Question>;
@@ -25,6 +26,13 @@ export class QuestionRepository {
   ): Promise<Question[]> {
     return this._repo.findAll({
       where: { gameId },
+      include: [
+        {
+          model: QuestionOption.schema(this.schema),
+          as: "options",
+          required: false,
+        }
+      ],
       order: [["id", "ASC"]],
       transaction: t
     });
