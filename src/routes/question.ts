@@ -33,6 +33,28 @@ router.post("/", SessionHelper.isUserLoggedIn(), async (req: Request, res: Respo
 });
 
 /**
+ * Update question (Admin / Host)
+ */
+router.put("/:id", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
+  try {
+    const updatedQuestion = await QuestionService.withSchema(req.schema!)
+      .updateQuestion(Number(req.params.id),
+        {
+          type: req.body.type,
+          questionText: req.body.questionText,
+          mediaUrl: req.body.mediaUrl,
+          answerType: req.body.answerType,
+          options: req.body.options
+        }
+      );
+
+    res.status(200).send(updatedQuestion);
+  } catch (error) {
+    ErrorUtil.handleError(error, req, res);
+  }
+});
+
+/**
  * Get questions by game
  */
 router.get("/game/:gameId", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {

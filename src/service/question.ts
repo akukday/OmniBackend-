@@ -1,4 +1,5 @@
-import { QuestionAttributes } from "../db/model/question";
+import { QuestionOptionRepository } from "../repository/questionOption";
+import { Question, QuestionAttributes } from "../db/model/question";
 import { QuestionRepository } from "../repository/question";
 
 interface QuestionOptionResponse {
@@ -74,5 +75,23 @@ export class QuestionService {
     await QuestionRepository
       .withSchema(this.schema)
       .deleteQuestion(questionId);
+  }
+
+  public async updateQuestion(questionId: number, payload: any): Promise<QuestionResponse> {
+    const question = await Question.schema(this.schema!).findByPk(questionId);
+
+    if (!question) {
+      throw new Error("Question not found");
+    }
+
+    await question.update(payload);
+
+    if (payload.options) {
+      await QuestionOptionRepository.withSchema(this.schema)
+        .syncOptions(questionId, payload.options);
+    }
+
+    const updatedQuestion = await QuestionRepository.withSchema(this.schema!).findById(questionId);
+    return this.transform(updatedQuestion);
   }
 }

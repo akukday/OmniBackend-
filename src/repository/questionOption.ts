@@ -48,6 +48,41 @@ export class QuestionOptionRepository {
     });
   }
 
+  public async syncOptions(questionId: number, options: any[]) {
+    const existing = await QuestionOption.schema(this.schema)
+      .findAll({ where: { questionId } });
+    const existingMap = new Map(existing.map(o => [o.dataValues.id, o]));
+    const incomingIds = new Set<number>();
+
+    for (const opt of options) {
+      if (opt.id) {        // UPDATE
+        const existingOpt = existingMap.get(opt.id);
+        if (existingOpt) {
+          await existingOpt.update({
+            optionText: opt.optionText,
+            isCorrect: opt.isCorrect,
+            displayOrder: opt.displayOrder
+          });
+          incomingIds.add(opt.id);
+        }
+      } else {        // CREATE
+        await QuestionOption.schema(this.schema)
+          .create({
+            questionId,
+            optionText: opt.optionText,
+            isCorrect: opt.isCorrect,
+            displayOrder: opt.displayOrder
+          });
+      }
+    }
+
+    const toDelete = existing.filter(o => !incomingIds.has(o.id)).map(o => o.id);     // DELETE removed options
+    if (toDelete.length) {
+      await QuestionOption.schema(this.schema)
+        .destroy({where: { id: toDelete }});
+    }
+  }
+
   public async findById(
     id: number,
     t?: Transaction

@@ -13,17 +13,11 @@ export class QuestionRepository {
     return new QuestionRepository(schema);
   }
 
-  public async createQuestion(
-    question: Question,
-    t?: Transaction
-  ): Promise<Question> {
+  public async createQuestion(question: Question, t?: Transaction): Promise<Question> {
     return this._repo.create({ ...question }, { transaction: t });
   }
 
-  public async findByGame(
-    gameId: number,
-    t?: Transaction
-  ): Promise<Question[]> {
+  public async findByGame(gameId: number, t?: Transaction): Promise<Question[]> {
     return this._repo.findAll({
       where: { gameId },
       include: [
@@ -66,7 +60,13 @@ export class QuestionRepository {
   }
 
   public async findById(id: number, t?: Transaction): Promise<Question | null> {
-    return this._repo.findOne({ where: { id }, transaction: t });
+    return this._repo.findOne({ where: { id }, include: [
+      {
+        model: QuestionOption.schema(this.schema),
+        as: "options",
+        required: false,
+      }
+    ], transaction: t });
   }
 
   public async deleteQuestion(
