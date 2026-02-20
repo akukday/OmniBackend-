@@ -37,12 +37,9 @@ export class TeamService {
 
       return this.transform(team);
     } catch (err: any) {
-      if (err.code === "23505") { // Postgres unique violation
-        const team = await TeamRepository.withSchema(this.schema)
-          .findBySessionAndName(sessionId, name);
-        return this.transform(team);
-      }
-      throw err;
+      const team = await TeamRepository.withSchema(this.schema)
+        .findBySessionAndName(sessionId, name);
+      return this.transform(team);
     }
   }
 
