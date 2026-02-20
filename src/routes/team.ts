@@ -14,19 +14,28 @@ router.use(schemaResolver);
  */
 router.post("/", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
   try {
-    const { sessionId, name } = req.body;
+    const { sessionId, names } = req.body;
     const loggedInUser = SessionHelper.getCurrentUserId(req);
+    const uniqueNames = [...new Set(names.map((n: string) => n.trim()))];
+
+    if (uniqueNames.length !== names.length) {
+      return res.status(400).send({ ERRMSG: "Duplicate team names in request" });
+    }
 
     const session = await GameSessionService
       .withSchema(req.schema!)
       .getGameSession(sessionId);
 
     if(session.hostUserId == loggedInUser) {
-      const team = await TeamService
-        .withSchema(req.schema!)
-        .createTeam(sessionId, name);
+      // Create multiple teams
+      const createdTeams = await Promise.all(
+        names.map((name: string) =>
+          TeamService
+            .withSchema(req.schema!)
+            .createTeam(sessionId, name)
+        ));
 
-      res.status(201).send(team);
+      res.status(201).send(createdTeams);
     } else {
       res.status(400).send({ ERRMSG: "You are not the host for this game!" });
     }
@@ -54,6 +63,22 @@ router.get("/session/:sessionId", SessionHelper.isUserLoggedIn(), async (req: Re
     } else {
       res.status(400).send({ ERRMSG: "You are not the host for this game!" });
     }
+  } catch (error) {
+    ErrorUtil.handleError(error, req, res);
+  }
+});
+
+/**
+ * Get teams for a session
+ */
+router.get("/my-team/:sessionId", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
+  try {
+    const userid = SessionHelper.getCurrentUserId(req);
+    const team = await TeamService
+      .withSchema(req.schema!)
+      .getTeamsBySessionUser(Number(req.params.sessionId), userid);
+
+    res.status(200).send(team); 
   } catch (error) {
     ErrorUtil.handleError(error, req, res);
   }

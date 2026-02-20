@@ -1,5 +1,6 @@
 import { TeamAttributes } from "../db/model/team";
 import { TeamRepository } from "../repository/team";
+import { PlayerRepository } from "../repository/player";
 
 export interface TeamResponse {
   id: number;
@@ -29,11 +30,20 @@ export class TeamService {
     sessionId: number,
     name: string
   ): Promise<TeamResponse> {
-    const team = await TeamRepository
+    try {
+      const team = await TeamRepository
       .withSchema(this.schema)
       .createTeam({ sessionId, name } as any);
 
-    return this.transform(team);
+      return this.transform(team);
+    } catch (err: any) {
+      if (err.code === "23505") { // Postgres unique violation
+        const team = await TeamRepository.withSchema(this.schema)
+          .findBySessionAndName(sessionId, name);
+        return this.transform(team);
+      }
+      throw err;
+    }
   }
 
   public async getTeamsBySession(sessionId: number): Promise<TeamResponse[]> {
@@ -42,6 +52,17 @@ export class TeamService {
       .findBySession(sessionId);
 
     return teams.map(t => this.transform(t));
+  }
+
+  public async getTeamsBySessionUser(sessionId: number, userId: string): Promise<TeamResponse> {
+    const player = await PlayerRepository
+      .withSchema(this.schema)
+      .findBySessionUser(sessionId, userId);
+    const team =  await TeamRepository
+      .withSchema(this.schema)
+      .findById(player?.dataValues.teamId ?? 0);
+
+    return this.transform(team);
   }
 
   public async findTeamWithLeastPlayers(sessionId: number): Promise<TeamResponse> {

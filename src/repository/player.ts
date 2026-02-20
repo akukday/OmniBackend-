@@ -30,6 +30,18 @@ export class PlayerRepository {
     });
   }
 
+  public async findBySessionUser(
+    sessionId: number,
+    userId: string,
+    t?: Transaction
+  ): Promise<Player | null> {
+    return this._repo.findOne({
+      where: { sessionId, userId },
+      order: [["joinedAt", "ASC"]],
+      transaction: t
+    });
+  }
+
   public async findById(
     id: number,
     t?: Transaction

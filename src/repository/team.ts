@@ -31,6 +31,17 @@ export class TeamRepository {
     });
   }
 
+  public async findBySessionAndName(
+    sessionId: number,
+    name: string,
+    t?: Transaction
+  ): Promise<Team | null> {
+    return this._repo.findOne({
+      where: { sessionId, name },
+      transaction: t
+    });
+  }
+
   public async findById(
     id: number,
     t?: Transaction
