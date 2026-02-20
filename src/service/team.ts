@@ -62,10 +62,14 @@ export class TeamService {
     return this.transform(team);
   }
 
-  public async findTeamWithLeastPlayers(sessionId: number): Promise<TeamResponse> {
+  public async findTeamWithLeastPlayers(sessionId: number): Promise<TeamResponse | null> {
     const team = await TeamRepository
       .withSchema(this.schema)
       .findTeamWithLeastPlayers(sessionId);
+    
+    if(!team) {
+      return null;
+    }
 
     return this.transform(team);
   }

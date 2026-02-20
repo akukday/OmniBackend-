@@ -35,6 +35,17 @@ export class PlayerService {
     teamId?: number;
     userId?: string;
   }): Promise<PlayerResponse> {
+    // Check if user is already part of this session
+    if (payload.userId) {
+      const existingPlayer = await PlayerRepository
+        .withSchema(this.schema)
+        .findBySessionUser(payload.sessionId, payload.userId);
+      
+      if (existingPlayer) {
+        throw new Error("User is already part of this game session");
+      }
+    }
+
     const player = await PlayerRepository
       .withSchema(this.schema)
       .createPlayer({
