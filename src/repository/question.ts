@@ -19,11 +19,12 @@ export class QuestionRepository {
 
   public async findByGame(gameId: number, t?: Transaction): Promise<Question[]> {
     return this._repo.findAll({
-      where: { gameId },
+      where: { gameId, isDeleted: false },
       include: [
         {
           model: QuestionOption.schema(this.schema),
           as: "options",
+          where: { isDeleted: false },
           required: false,
         }
       ],
@@ -39,6 +40,7 @@ export class QuestionRepository {
     const query = `
       SELECT * FROM ${this.schema}.questions
       WHERE game_id = $${categoryIds.length + 1}
+      AND is_deleted = false
       AND category_id IN (${placeholders})
       ORDER BY id ASC
     `;
@@ -60,10 +62,11 @@ export class QuestionRepository {
   }
 
   public async findById(id: number, t?: Transaction): Promise<Question | null> {
-    return this._repo.findOne({ where: { id }, include: [
+    return this._repo.findOne({ where: { id, isDeleted: false }, include: [
       {
         model: QuestionOption.schema(this.schema),
         as: "options",
+        where: { isDeleted: false },
         required: false,
       }
     ], transaction: t });
@@ -73,10 +76,12 @@ export class QuestionRepository {
     id: number,
     t?: Transaction
   ): Promise<number> {
-    return this._repo.destroy({
-      where: { id },
-      cascade: true,
+    const [updatedCount] = await this._repo.update({
+      isDeleted: true
+    }, {
+      where: { id, isDeleted: false },
       transaction: t
     });
+    return updatedCount;
   }
 }

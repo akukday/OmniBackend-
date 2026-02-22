@@ -4,7 +4,8 @@ import { QuestionRepository } from "../repository/question";
 
 interface QuestionOptionResponse {
   id: number;
-  optionText: string;
+  optionText?: string;
+  optionMedia?: string;
   isCorrect: boolean;
   displayOrder: number;
 }
@@ -40,6 +41,7 @@ export class QuestionService {
         return {
           id: o.id,
           optionText: o.optionText,
+          optionMedia: o.optionMedia,
           isCorrect: o.isCorrect,
           displayOrder: o.displayOrder
         };
@@ -49,16 +51,37 @@ export class QuestionService {
 
   public async createQuestion(payload: {
     gameId: number;
-    type: string;
+    type?: string;
     questionText?: string;
     mediaUrl?: string;
     answerType?: string;
+    options?: {
+      optionText?: string;
+      optionMedia?: string;
+      isCorrect?: boolean;
+      displayOrder?: number;
+    }[];
   }): Promise<QuestionResponse> {
     const question = await QuestionRepository
       .withSchema(this.schema)
-      .createQuestion(payload as any);
+      .createQuestion({
+        gameId: payload.gameId,
+        type: payload.type ?? "MCQ",
+        questionText: payload.questionText,
+        mediaUrl: payload.mediaUrl,
+        answerType: payload.answerType ?? "SINGLE"
+      } as any);
 
-    return this.transform(question);
+    if (payload.options && payload.options.length > 0) {
+      await QuestionOptionRepository.withSchema(this.schema)
+        .syncOptions(question.dataValues.id, payload.options);
+    }
+
+    const savedQuestion = await QuestionRepository
+      .withSchema(this.schema)
+      .findById(question.dataValues.id);
+
+    return this.transform(savedQuestion);
   }
 
   public async getQuestionsByGame(
@@ -72,13 +95,19 @@ export class QuestionService {
   }
 
   public async deleteQuestion(questionId: number): Promise<void> {
+    await QuestionOptionRepository
+      .withSchema(this.schema)
+      .deleteByQuestion(questionId);
+
     await QuestionRepository
       .withSchema(this.schema)
       .deleteQuestion(questionId);
   }
 
   public async updateQuestion(questionId: number, payload: any): Promise<QuestionResponse> {
-    const question = await Question.schema(this.schema!).findByPk(questionId);
+    const question = await Question.schema(this.schema!).findOne({
+      where: { id: questionId, isDeleted: false }
+    });
 
     if (!question) {
       throw new Error("Question not found");

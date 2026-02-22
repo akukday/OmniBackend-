@@ -12,6 +12,7 @@ export interface QuestionAttributes {
   questionText?: string;
   mediaUrl?: string;
   answerType?: string;
+  isDeleted?: boolean;
   createdAt?: Date;
   options?: QuestionOptionAttributes[];
 }
@@ -21,7 +22,7 @@ export interface QuestionAttributes {
  */
 export type QuestionCreationAttributes = Optional<
   QuestionAttributes,
-  "id" | "questionText" | "mediaUrl" | "answerType" | "createdAt"
+  "id" | "questionText" | "mediaUrl" | "answerType" | "isDeleted" | "createdAt"
 >;
 
 export class Question extends Model<QuestionAttributes, QuestionCreationAttributes> implements QuestionAttributes
@@ -32,6 +33,7 @@ export class Question extends Model<QuestionAttributes, QuestionCreationAttribut
   public questionText?: string;
   public mediaUrl?: string;
   public answerType?: string;
+  public isDeleted?: boolean;
   public createdAt?: Date;
   public options?: QuestionOption[];
 }
@@ -66,6 +68,11 @@ Question.init(
       type: DataTypes.STRING(20),
       field: "answer_type",
       defaultValue: "SINGLE"
+    },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      field: "is_deleted",
+      defaultValue: false
     },
     createdAt: {
       type: DataTypes.DATE,

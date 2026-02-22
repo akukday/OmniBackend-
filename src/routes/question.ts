@@ -14,16 +14,22 @@ router.use(schemaResolver);
  */
 router.post("/", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
   try {
-    const { gameId, type, questionText, mediaUrl, answerType } = req.body;
+    const { gameId, type, questionText, mediaUrl, answerType, options } = req.body;
+
+    const parsedGameId = Number(gameId);
+    if (!Number.isFinite(parsedGameId)) {
+      throw new Error("Invalid gameId");
+    }
 
     const question = await QuestionService
       .withSchema(req.schema!)
       .createQuestion({
-        gameId,
+        gameId: parsedGameId,
         type,
         questionText,
         mediaUrl,
-        answerType
+        answerType,
+        options
       });
 
     res.status(201).send(question);

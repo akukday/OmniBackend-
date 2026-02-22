@@ -31,7 +31,7 @@ export class QuestionOptionRepository {
     t?: Transaction
   ): Promise<QuestionOption[]> {
     return this._repo.findAll({
-      where: { questionId },
+      where: { questionId, isDeleted: false },
       order: [["displayOrder", "ASC"]],
       transaction: t
     });
@@ -41,46 +41,36 @@ export class QuestionOptionRepository {
     questionId: number,
     t?: Transaction
   ): Promise<number> {
-    return this._repo.destroy({
-      where: { questionId },
-      cascade: true,
+    const [updatedCount] = await this._repo.update({
+      isDeleted: true
+    }, {
+      where: { questionId, isDeleted: false },
       transaction: t
     });
+    return updatedCount;
   }
 
   public async syncOptions(questionId: number, options: any[]) {
-    const existing = await QuestionOption.schema(this.schema)
-      .findAll({ where: { questionId } });
-    const existingMap = new Map(existing.map(o => [o.dataValues.id, o]));
-    const incomingIds = new Set<number>();
+    await QuestionOption.schema(this.schema).update({
+      isDeleted: true
+    }, {
+      where: { questionId, isDeleted: false }
+    });
 
-    for (const opt of options) {
-      if (opt.id) {        // UPDATE
-        const existingOpt = existingMap.get(opt.id);
-        if (existingOpt) {
-          await existingOpt.update({
-            optionText: opt.optionText,
-            isCorrect: opt.isCorrect,
-            displayOrder: opt.displayOrder
-          });
-          incomingIds.add(opt.id);
-        }
-      } else {        // CREATE
-        await QuestionOption.schema(this.schema)
-          .create({
-            questionId,
-            optionText: opt.optionText,
-            isCorrect: opt.isCorrect,
-            displayOrder: opt.displayOrder
-          });
-      }
+    if (!options || options.length === 0) {
+      return;
     }
 
-    const toDelete = existing.filter(o => !incomingIds.has(o.id)).map(o => o.id);     // DELETE removed options
-    if (toDelete.length) {
-      await QuestionOption.schema(this.schema)
-        .destroy({where: { id: toDelete }});
-    }
+    await QuestionOption.schema(this.schema).bulkCreate(
+      options.map((opt: any, index: number) => ({
+        questionId,
+        optionText: opt.optionText,
+        optionMedia: opt.optionMedia,
+        isCorrect: !!opt.isCorrect,
+        displayOrder: opt.displayOrder ?? index + 1,
+        isDeleted: false
+      }))
+    );
   }
 
   public async findById(
@@ -88,7 +78,7 @@ export class QuestionOptionRepository {
     t?: Transaction
   ): Promise<QuestionOption | null> {
     return this._repo.findOne({
-      where: { id },
+      where: { id, isDeleted: false },
       transaction: t
     });
   }

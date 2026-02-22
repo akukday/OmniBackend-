@@ -11,6 +11,7 @@ export interface QuestionOptionAttributes {
   optionMedia?: string;
   isCorrect: boolean;
   displayOrder?: number;
+  isDeleted?: boolean;
   createdAt?: Date;
 }
 
@@ -19,7 +20,7 @@ export interface QuestionOptionAttributes {
  */
 export type QuestionOptionCreationAttributes = Optional<
   QuestionOptionAttributes,
-  "id" | "optionText" | "optionMedia" | "isCorrect" | "displayOrder" | "createdAt"
+  "id" | "optionText" | "optionMedia" | "isCorrect" | "displayOrder" | "isDeleted" | "createdAt"
 >;
 
 export class QuestionOption extends Model<QuestionOptionAttributes, QuestionOptionCreationAttributes> implements QuestionOptionAttributes
@@ -30,6 +31,7 @@ export class QuestionOption extends Model<QuestionOptionAttributes, QuestionOpti
   public optionMedia?: string;
   public isCorrect!: boolean;
   public displayOrder?: number;
+  public isDeleted?: boolean;
   public createdAt?: Date;
 }
 
@@ -64,6 +66,11 @@ QuestionOption.init(
       type: DataTypes.INTEGER,
       field: "display_order",
       allowNull: true
+    },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      field: "is_deleted",
+      defaultValue: false
     },
     createdAt: {
       type: DataTypes.DATE,
