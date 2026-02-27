@@ -7,6 +7,7 @@ import { GameRepository } from "../repository/games";
 import { GameCategoryRepository } from "../repository/gameCategory";
 import { QuestionRepository } from "../repository/question";
 import { SessionQuestionResponse, SessionQuestionService } from "./sessionQuestion";
+import { TeamResponse, TeamService } from "./team";
 
 export interface GameSessionResponse {
   id: number;
@@ -16,6 +17,10 @@ export interface GameSessionResponse {
   status: string;
   currentRound: number;
   videoLink?: string;
+}
+
+export interface CurrentRoundResponse extends SessionQuestionResponse {
+  teams: TeamResponse[];
 }
 
 export class GameSessionService {
@@ -171,7 +176,7 @@ export class GameSessionService {
       .endSession(sessionId);
   }
 
-  public async currentRound(sessionId: number): Promise<SessionQuestionResponse> {
+  public async currentRound(sessionId: number): Promise<CurrentRoundResponse> {
     const session = await GameSessionRepository.withSchema(this.schema)
       .findById(sessionId);
     if (!session || session?.dataValues.status == "COMPLETED") {
@@ -179,8 +184,15 @@ export class GameSessionService {
     }
     
     const currentRound = session.dataValues.currentRound;
+    const roundData = await SessionQuestionService.withSchema(this.schema)
+      .findBySessionAndRound(sessionId, currentRound ?? 0);
+    const teams = await TeamService.withSchema(this.schema)
+      .getTeamsBySession(sessionId);
 
-    return await SessionQuestionService.withSchema(this.schema).findBySessionAndRound(sessionId, currentRound ?? 0)
+    return {
+      ...roundData,
+      teams
+    };
   }
 
   public async startNextRound(sessionId: number, userId: string): Promise<SessionQuestionResponse | { message: string }> {

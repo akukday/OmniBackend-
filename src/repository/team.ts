@@ -59,6 +59,19 @@ export class TeamRepository {
       .then(([count]) => count);
   }
 
+  public async incrementScore(
+    teamId: number,
+    points: number,
+    t?: Transaction
+  ): Promise<number> {
+    return this._repo
+      .update(
+        { score: Sequelize.literal(`COALESCE(score, 0) + ${points}`) as any },
+        { where: { id: teamId }, transaction: t }
+      )
+      .then(([count]) => count);
+  }
+
   public async deleteTeam(
     teamId: number,
     t?: Transaction

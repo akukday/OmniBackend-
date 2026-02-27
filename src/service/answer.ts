@@ -2,6 +2,8 @@ import { AnswerAttributes, AnswerCreationAttributes } from "../db/model/answer";
 import { AnswerRepository } from "../repository/answer";
 import { SessionQuestionRepository } from "../repository/sessionQuestion";
 import { QuestionOptionRepository } from "../repository/questionOption";
+import { TeamRepository } from "../repository/team";
+import { dbService } from "../db/sequelize";
 
 export interface AnswerResponse {
   id: number;
@@ -46,13 +48,35 @@ export class AnswerService {
     answerId?: number;
     answer?: string;
   }, userId: string): Promise<AnswerResponse> {
+    const t = await dbService.dbModel.transaction();
+    try {
     // Verify session question exists
     const sessionQuestion = await SessionQuestionRepository
       .withSchema(this.schema)
-      .findById(payload.sessionQuestionId);
+      .findById(payload.sessionQuestionId, t);
 
     if (!sessionQuestion) {
       throw new Error("Session question not found");
+    }
+
+    const team = await TeamRepository
+      .withSchema(this.schema)
+      .findById(payload.teamId, t);
+    if (!team) {
+      throw new Error("Team not found");
+    }
+
+    if (Number(team.dataValues.sessionId) !== Number(sessionQuestion.dataValues.sessionId)) {
+      throw new Error("Team does not belong to this session");
+    }
+
+    // Prevent multiple submissions by the same team for the same question.
+    const existingAnswer = await AnswerRepository
+      .withSchema(this.schema)
+      .findTeamAnswer(payload.sessionQuestionId, payload.teamId, t);
+    if (existingAnswer) {
+      await t.commit();
+      return this.transform(existingAnswer);
     }
 
     let isCorrect: boolean | undefined = undefined;
@@ -61,7 +85,7 @@ export class AnswerService {
     if (payload.answerId) {
       const questionOption = await QuestionOptionRepository
         .withSchema(this.schema)
-        .findById(payload.answerId);
+        .findById(payload.answerId, t);
       
       if (questionOption) {
         isCorrect = questionOption.dataValues.isCorrect;
@@ -80,9 +104,21 @@ export class AnswerService {
 
     const created = await AnswerRepository
       .withSchema(this.schema)
-      .submitAnswer(answerPayload as any);
+      .submitAnswer(answerPayload as any, t);
+
+    if (isCorrect) {
+      await TeamRepository
+        .withSchema(this.schema)
+        .incrementScore(payload.teamId, 1, t);
+    }
+
+    await t.commit();
 
     return this.transform(created);
+    } catch (error) {
+      await t.rollback();
+      throw error;
+    }
   }
 
   public async getAnswersForQuestion(
