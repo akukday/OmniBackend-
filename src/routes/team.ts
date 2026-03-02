@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { schemaResolver } from "../db/schemaResolver";
 import { ErrorUtil } from "../util/errorUtil";
 import { TeamService } from "../service/team";
+import { PlayerService } from "../service/player";
 import { SessionHelper } from "../common/middleware/sessionHelper";
 import { GameSessionService } from "../service/gameSession";
 
@@ -55,11 +56,20 @@ router.get("/session/:sessionId", SessionHelper.isUserLoggedIn(), async (req: Re
       .getGameSession(Number(req.params.sessionId));
 
     if(session.hostUserId == userid) {
+      const sessionId = Number(req.params.sessionId);
       const teams = await TeamService
         .withSchema(req.schema!)
-        .getTeamsBySession(Number(req.params.sessionId));
+        .getTeamsBySession(sessionId);
+      const players = await PlayerService
+        .withSchema(req.schema!)
+        .getPlayersBySession(sessionId);
 
-      res.status(200).send(teams); 
+      const users = players.map((player) => ({
+        id: player.id,
+        name: player.name
+      }));
+
+      res.status(200).send({ teams, users }); 
     } else {
       res.status(400).send({ ERRMSG: "You are not the host for this game!" });
     }
@@ -117,3 +127,7 @@ router.delete("/:id", SessionHelper.isUserLoggedIn(), async (req: Request, res: 
 });
 
 export default router;
+
+
+
+
