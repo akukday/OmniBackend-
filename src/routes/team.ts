@@ -63,13 +63,23 @@ router.get("/session/:sessionId", SessionHelper.isUserLoggedIn(), async (req: Re
       const players = await PlayerService
         .withSchema(req.schema!)
         .getPlayersBySession(sessionId);
+      const playersByTeam = new Map<number, typeof players>();
+      for (const player of players) {
+        if (!player.teamId) {
+          continue;
+        }
 
-      const users = players.map((player) => ({
-        id: player.id,
-        name: player.name
+        const teamPlayers = playersByTeam.get(player.teamId) ?? [];
+        teamPlayers.push(player);
+        playersByTeam.set(player.teamId, teamPlayers);
+      }
+
+      const teamsWithPlayers = teams.map((team) => ({
+        ...team,
+        players: playersByTeam.get(team.id) ?? []
       }));
 
-      res.status(200).send({ teams, users }); 
+      res.status(200).send({ teams: teamsWithPlayers }); 
     } else {
       res.status(400).send({ ERRMSG: "You are not the host for this game!" });
     }
