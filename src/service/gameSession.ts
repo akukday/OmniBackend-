@@ -24,6 +24,11 @@ export interface CurrentRoundResponse extends SessionQuestionResponse {
   totalRounds: number;
 }
 
+export interface CurrentRoundCompletedResponse {
+  status: "ok";
+  message: string;
+}
+
 export class GameSessionService {
   constructor(private schema: string) {}
 
@@ -177,11 +182,18 @@ export class GameSessionService {
       .endSession(sessionId);
   }
 
-  public async currentRound(sessionId: number): Promise<CurrentRoundResponse> {
+  public async currentRound(sessionId: number): Promise<CurrentRoundResponse | CurrentRoundCompletedResponse> {
     const session = await GameSessionRepository.withSchema(this.schema)
       .findById(sessionId);
-    if (!session || session?.dataValues.status == "COMPLETED") {
-      throw new Error("Game is completed!");
+    if (!session) {
+      throw new Error("Session not found");
+    }
+
+    if (session.dataValues.status == "COMPLETED") {
+      return {
+        status: "ok",
+        message: "Game is completed!"
+      };
     }
 
     const game = await GameRepository.withSchema(this.schema)
