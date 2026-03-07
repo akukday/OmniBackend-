@@ -21,6 +21,7 @@ export interface GameSessionResponse {
 
 export interface CurrentRoundResponse extends SessionQuestionResponse {
   teams: TeamResponse[];
+  totalRounds: number;
 }
 
 export class GameSessionService {
@@ -182,7 +183,13 @@ export class GameSessionService {
     if (!session || session?.dataValues.status == "COMPLETED") {
       throw new Error("Game is completed!");
     }
-    
+
+    const game = await GameRepository.withSchema(this.schema)
+      .findById(session.dataValues.gameId);
+    if (!game) {
+      throw new Error("Game not found");
+    }
+
     const currentRound = session.dataValues.currentRound;
     const roundData = await SessionQuestionService.withSchema(this.schema)
       .findBySessionAndRound(sessionId, currentRound ?? 0);
@@ -191,7 +198,8 @@ export class GameSessionService {
 
     return {
       ...roundData,
-      teams
+      teams,
+      totalRounds: game.dataValues.maxRounds ?? 0
     };
   }
 
