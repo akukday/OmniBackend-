@@ -10,6 +10,7 @@ interface AccountResponse {
     createdAt?: Date
     updatedBy?: string
     updatedAt?: Date
+    profilePicUrl: string
   }
 
 interface AccountRequest {

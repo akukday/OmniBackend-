@@ -7,6 +7,8 @@ import { NumberUtil } from "../util/numberUtil";
 import { PhoneVerifyRepository } from "../repository/phoneVerify";
 import jwt from "jsonwebtoken";
 import { axiosRequest } from "../util/http";
+import AWS from "aws-sdk";
+import { v4 as uuidv4 } from "uuid";
 const jwkToPem = require('jwk-to-pem');
 
 export class AccountService {
@@ -26,6 +28,7 @@ export class AccountService {
             phoneNo: result?.phoneNo ?? "",
             email: result?.email ?? "",
             allowAccess: result?.allowAccess ?? true,
+            profilePicUrl: result?.profileUrl ?? "",
             createdBy: result?.createdBy ?? ""
         };
     }
@@ -122,5 +125,70 @@ export class AccountService {
             allowAccess: true
         } as any);
         return this.transformResult(account);
+    }
+
+    public async updateProfileNames(
+      userId: string,
+      payload: { fullName?: string; displayName?: string; profileImageId?: string }
+    ): Promise<AccountResponse> {
+      const existing = await AccountRepository.withSchema(this.schema).findByUserId(userId);
+      if (!existing) {
+        throw new Error("Account not found");
+      }
+
+      const bucketName = process.env["s3-profile-bucket"] || "event-planner-profile-pictures";
+      const region = process.env.REGION || "ap-south-1";
+      const profileUrl = payload.profileImageId
+        ? `https://${bucketName}.s3.${region}.amazonaws.com/${payload.profileImageId}`
+        : existing.dataValues.profileUrl;
+
+      const updated = await AccountRepository.withSchema(this.schema).updateNames(
+        userId,
+        {
+          fullName: payload.fullName ?? existing.dataValues.fullName,
+          displayName: payload.displayName ?? existing.dataValues.displayName,
+          profileUrl
+        }
+      );
+
+      if (!updated) {
+        throw new Error("Failed to update account");
+      }
+
+      return this.transformResult(updated);
+    }
+
+    public async getProfileImageUploadUrl(
+      userId: string,
+      payload: { contentType: string; fileName?: string }
+    ): Promise<{ uploadUrl: string; profileImageId: string; expiresIn: number }> {
+      const bucketName = process.env["s3-profile-bucket"] || "event-planner-profile-pictures";
+      const region = process.env.REGION || "ap-south-1";
+      if (!bucketName) {
+        throw new Error("Profile image bucket is not configured");
+      }
+
+      const extMap: Record<string, string> = {
+        "image/jpeg": "jpg",
+        "image/jpg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp"
+      };
+      const extension = extMap[payload.contentType] || "jpg";
+      const safeFileName = (payload.fileName || uuidv4())
+        .replace(/[^a-zA-Z0-9._-]/g, "_")
+        .slice(0, 120);
+      const profileImageId = `users/${userId}/profile/${Date.now()}-${safeFileName}.${extension}`;
+      const expiresIn = 300;
+
+      const s3 = new AWS.S3({ region });
+      const uploadUrl = await s3.getSignedUrlPromise("putObject", {
+        Bucket: bucketName,
+        Key: profileImageId,
+        ContentType: payload.contentType,
+        Expires: expiresIn
+      });
+
+      return { uploadUrl, profileImageId, expiresIn };
     }
 }

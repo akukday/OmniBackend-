@@ -8,6 +8,7 @@ import { SessionHelper } from "../common/middleware/sessionHelper";
 import { AccountService } from "../service/account";
 import _ from "lodash";
 import { schemaResolver } from "../db/schemaResolver";
+const { v4: uuidv4 } = require("uuid");
 const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.google_client_id);
 
@@ -221,5 +222,67 @@ router.post('/delete', SessionHelper.isUserLoggedIn(), async (req: Request, res:
         res.status(500).send({ ERRMSG: (error as Error).message });
     }
 });
+
+router.put('/account/profile', SessionHelper.isUserLoggedIn(),
+    [
+      check('fullName').optional().isString().withMessage('fullName should be a string'),
+      check('displayName').optional().isString().withMessage('displayName should be a string'),
+      check('profileImageId').optional().isString().withMessage('profileImageId should be a string')
+    ],
+    async (req: Request, res: Response) => {
+      try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          return res.status(400).send({ ERRMSG: errors.array().map(x => x.msg).toString() });
+        }
+
+        const { fullName, displayName, profileImageId } = req.body;
+        if (fullName === undefined && displayName === undefined && profileImageId === undefined) {
+          return res.status(400).send({ ERRMSG: "At least one of fullName/displayName/profileImageId is required" });
+        }
+
+        const userId = SessionHelper.getCurrentUserId(req);
+        const updated = await AccountService
+          .withSchema(req.schema!)
+          .updateProfileNames(userId, { fullName, displayName, profileImageId });
+
+        res.status(200).send(updated);
+      } catch (error) {
+        res.status(500).send({ ERRMSG: (error as Error).message });
+      }
+    }
+);
+
+router.post('/account/profile-image/upload-url', SessionHelper.isUserLoggedIn(),
+    [
+      check('contentType').notEmpty().withMessage('contentType is required')
+    ],
+    async (req: Request, res: Response) => {
+      try {
+        const errors = validationResult(req);
+        const uid = uuidv4();
+        if (!errors.isEmpty()) {
+          return res.status(400).send({ ERRMSG: errors.array().map(x => x.msg).toString() });
+        }
+
+        const allowedContentTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+        if (!allowedContentTypes.includes(req.body.contentType)) {
+          return res.status(400).send({ ERRMSG: "Unsupported contentType" });
+        }
+
+        const userId = SessionHelper.getCurrentUserId(req);
+        const signedUrl = await AccountService
+          .withSchema(req.schema!)
+          .getProfileImageUploadUrl(userId, {
+            contentType: req.body.contentType,
+            fileName: uid
+          });
+
+        res.status(200).send(signedUrl);
+      } catch (error) {
+        res.status(500).send({ ERRMSG: (error as Error).message });
+      }
+    }
+);
 
 export default router;

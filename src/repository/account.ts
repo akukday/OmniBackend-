@@ -39,4 +39,20 @@ export class AccountRepository {
       return this._accountRepo.findOne({where:  {id: userId}, transaction: t});
     }
 
+    public async updateNames(
+      userId: string,
+      payload: { fullName?: string; displayName?: string; profileUrl?: string },
+      t?: Transaction
+    ): Promise<Account | null> {
+      await this._accountRepo.update(
+        {
+          fullName: payload.fullName,
+          displayName: payload.displayName,
+          profileUrl: payload.profileUrl
+        },
+        { where: { id: userId }, transaction: t }
+      );
+      return this.findByUserId(userId, t);
+    }
+
 }
