@@ -9,6 +9,38 @@ const router = Router({ strict: true, caseSensitive: false });
 
 router.use(schemaResolver);
 
+router.post("/media/upload-url", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
+  try {
+    const { gameId, contentType, fileName, scope } = req.body;
+    const parsedGameId = Number(gameId);
+    if (!Number.isFinite(parsedGameId)) {
+      return res.status(400).send({ ERRMSG: "Invalid gameId" });
+    }
+
+    const allowedContentTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowedContentTypes.includes(contentType)) {
+      return res.status(400).send({ ERRMSG: "Unsupported contentType" });
+    }
+
+    if (scope && !["question", "option"].includes(scope)) {
+      return res.status(400).send({ ERRMSG: "Invalid scope" });
+    }
+
+    const signedUrl = await QuestionService
+      .withSchema(req.schema!)
+      .getMediaUploadUrl({
+        gameId: parsedGameId,
+        contentType,
+        fileName,
+        scope
+      });
+
+    res.status(200).send(signedUrl);
+  } catch (error) {
+    ErrorUtil.handleError(error, req, res);
+  }
+});
+
 /**
  * Create question (Admin / Host)
  */

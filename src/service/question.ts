@@ -1,6 +1,9 @@
 import { QuestionOptionRepository } from "../repository/questionOption";
 import { Question, QuestionAttributes } from "../db/model/question";
 import { QuestionRepository } from "../repository/question";
+import { GameRepository } from "../repository/games";
+import AWS from "aws-sdk";
+import { v4 as uuidv4 } from "uuid";
 
 interface QuestionOptionResponse {
   id: number;
@@ -25,6 +28,53 @@ export class QuestionService {
 
   static withSchema(schema: string) {
     return new QuestionService(schema);
+  }
+
+  public async getMediaUploadUrl(payload: {
+    gameId: number;
+    contentType: string;
+    fileName?: string;
+    scope?: "question" | "option";
+  }): Promise<{ uploadUrl: string; mediaId: string; mediaUrl: string; expiresIn: number }> {
+    const game = await GameRepository.withSchema(this.schema).findById(payload.gameId);
+    if (!game) {
+      throw new Error("Game not found");
+    }
+
+    if ((game.dataValues.gameType || "").toUpperCase() !== "IMAGE") {
+      throw new Error("Media upload is allowed only for IMAGE game type");
+    }
+
+    const bucketName = process.env["s3-event-bucket"] || "event-planner-event-assets";
+    const region = process.env.REGION || "ap-south-1";
+    if (!bucketName) {
+      throw new Error("Event media bucket is not configured");
+    }
+
+    const extMap: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/jpg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp"
+    };
+    const extension = extMap[payload.contentType] || "jpg";
+    const safeFileName = (payload.fileName || uuidv4())
+      .replace(/[^a-zA-Z0-9._-]/g, "_")
+      .slice(0, 120);
+    const scope = payload.scope || "question";
+    const mediaId = `games/${payload.gameId}/${scope}/${Date.now()}-${safeFileName}.${extension}`;
+    const expiresIn = 300;
+
+    const s3 = new AWS.S3({ region });
+    const uploadUrl = await s3.getSignedUrlPromise("putObject", {
+      Bucket: bucketName,
+      Key: mediaId,
+      ContentType: payload.contentType,
+      Expires: expiresIn
+    });
+    const mediaUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${mediaId}`;
+
+    return { uploadUrl, mediaId, mediaUrl, expiresIn };
   }
 
   private transform(result: any): QuestionResponse {
