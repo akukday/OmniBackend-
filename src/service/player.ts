@@ -42,7 +42,7 @@ export class PlayerService {
         .findBySessionUser(payload.sessionId, payload.userId);
       
       if (existingPlayer) {
-        throw new Error("User is already part of this game session");
+        return this.transform(existingPlayer);
       }
     }
 
