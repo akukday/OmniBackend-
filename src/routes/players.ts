@@ -86,7 +86,10 @@ router.post("/join", SessionHelper.isUserLoggedIn(), [check('joinCode').notEmpty
       await InviteService.withSchema(req.schema!).markInviteUsed(invited.map(x => x.id));
     }
 
-    res.status(201).send(player);
+    res.status(201).send({
+      ...player,
+      gameId: session.gameId
+    });
   } catch (error) {
     ErrorUtil.handleError(error, req, res);
   }
