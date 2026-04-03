@@ -50,39 +50,30 @@ router.post("/", SessionHelper.isUserLoggedIn(), async (req: Request, res: Respo
  */
 router.get("/session/:sessionId", SessionHelper.isUserLoggedIn(), async (req: Request, res: Response) => {
   try {
-    const userid = SessionHelper.getCurrentUserId(req);
-    const session = await GameSessionService
+    const sessionId = Number(req.params.sessionId);
+    const teams = await TeamService
       .withSchema(req.schema!)
-      .getGameSession(Number(req.params.sessionId));
-
-    if(session.hostUserId == userid) {
-      const sessionId = Number(req.params.sessionId);
-      const teams = await TeamService
-        .withSchema(req.schema!)
-        .getTeamsBySession(sessionId);
-      const players = await PlayerService
-        .withSchema(req.schema!)
-        .getPlayersBySession(sessionId);
-      const playersByTeam = new Map<number, typeof players>();
-      for (const player of players) {
-        if (!player.teamId) {
-          continue;
-        }
-
-        const teamPlayers = playersByTeam.get(player.teamId) ?? [];
-        teamPlayers.push(player);
-        playersByTeam.set(player.teamId, teamPlayers);
+      .getTeamsBySession(sessionId);
+    const players = await PlayerService
+      .withSchema(req.schema!)
+      .getPlayersBySession(sessionId);
+    const playersByTeam = new Map<number, typeof players>();
+    for (const player of players) {
+      if (!player.teamId) {
+        continue;
       }
 
-      const teamsWithPlayers = teams.map((team) => ({
-        ...team,
-        players: playersByTeam.get(team.id) ?? []
-      }));
-
-      res.status(200).send({ teams: teamsWithPlayers }); 
-    } else {
-      res.status(400).send({ ERRMSG: "You are not the host for this game!" });
+      const teamPlayers = playersByTeam.get(player.teamId) ?? [];
+      teamPlayers.push(player);
+      playersByTeam.set(player.teamId, teamPlayers);
     }
+
+    const teamsWithPlayers = teams.map((team) => ({
+      ...team,
+      players: playersByTeam.get(team.id) ?? []
+    }));
+
+    res.status(200).send({ teams: teamsWithPlayers }); 
   } catch (error) {
     ErrorUtil.handleError(error, req, res);
   }
